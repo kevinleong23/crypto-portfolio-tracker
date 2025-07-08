@@ -1,0 +1,100 @@
+const mongoose = require('mongoose')
+const bcrypt = require('bcryptjs')
+
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
+  },
+  password: {
+    type: String,
+    required: function() {
+      return !this.googleId
+    }
+  },
+  googleId: {
+    type: String,
+    sparse: true
+  },
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  twoFactorSecret: {
+    type: String
+  },
+  integrations: [{
+    type: {
+      type: String,
+      enum: ['exchange', 'wallet'],
+      required: true
+    },
+    name: {
+      type: String,
+      required: true
+    },
+    apiKey: {
+      type: String // Encrypted
+    },
+    apiSecret: {
+      type: String // Encrypted
+    },
+    walletAddress: {
+      type: String
+    },
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  lastSync: {
+    type: Date
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+})
+
+// Hash password before saving
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next()
+  
+  try {
+    const salt = await bcrypt.genSalt(10)
+    this.password = await bcrypt.hash(this.password, salt)
+    next()
+  } catch (error) {
+    next(error)
+  }
+})
+
+// Compare password method
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password)
+}
+
+// Update timestamp
+userSchema.pre('save', function(next) {
+  this.updatedAt = Date.now()
+  next()
+})
+
+module.exports = mongoose.model('User', userSchema)
