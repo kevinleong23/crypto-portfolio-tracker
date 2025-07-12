@@ -124,38 +124,18 @@ async function getSolanaBalances(address) {
       'jup6126qz4u4as4Kz8Y8CyYbnY6u9C5HYvFNhzwDqKi': 'JUP'
     }
     
-    // Get ALL SPL token accounts (not just known ones)
+    // Get SPL token accounts (only known tokens)
     for (const { account } of tokenAccounts.value) {
       const parsedInfo = account.data.parsed.info
       const mint = parsedInfo.mint
       const amount = parseFloat(parsedInfo.tokenAmount.uiAmount)
       
-      if (amount > 0) {
-        // Try to get token metadata
-        let symbol = tokenMap[mint] || mint.slice(0, 4).toUpperCase()
-        
-        // For unknown tokens, try to fetch metadata
-        if (!tokenMap[mint]) {
-          try {
-            // Try to get token name from various sources
-            const tokenListResponse = await axios.get(
-              `https://api.solscan.io/token/meta?token=${mint}`,
-              { timeout: 2000 }
-            ).catch(() => null)
-            
-            if (tokenListResponse?.data?.data?.symbol) {
-              symbol = tokenListResponse.data.data.symbol
-            }
-          } catch (error) {
-            // Keep the shortened mint address as symbol
-          }
-        }
-        
+      if (amount > 0 && tokenMap[mint]) {
+        const symbol = tokenMap[mint]
         balances.push({
           symbol,
           amount,
-          name: symbol,
-          mint // Include mint address for reference
+          name: symbol
         })
       }
     }

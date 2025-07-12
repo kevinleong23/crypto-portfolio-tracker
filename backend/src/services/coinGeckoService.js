@@ -361,7 +361,8 @@ const symbolToCoinGeckoId = {
   'WEMIX': 'wemix-token',
   'XCN': 'chain-2',
   'MSN': 'meson-network',
-  'GHX': 'gamercoin'
+  'GHX': 'gamercoin',
+  'DOP': 'data-ownership-protocol'
 }
 
 module.exports = {

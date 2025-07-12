@@ -29,7 +29,16 @@ function AssetTable({ assets, onAssetClick }) {
               <td className={`text-right py-3 px-4 ${asset.change24h < 0 ? 'text-red-500' : 'text-green-500'}`}>
                 {asset.change24h > 0 ? '+' : ''}{asset.change24h.toFixed(2)}%
               </td>
-              <td className="text-right py-3 px-4">${(asset.price || asset.currentPrice || 0).toLocaleString()}</td>
+              <td className="text-right py-3 px-4">
+                ${(() => {
+                  const price = asset.price || asset.currentPrice || 0
+                  if (price === 0) return '0'
+                  if (price < 0.00001) return price.toExponential(2)
+                  if (price < 0.01) return price.toFixed(6)
+                  if (price < 1) return price.toFixed(4)
+                  return price.toLocaleString()
+                })()}
+              </td>
               <td className="text-right py-3 px-4">${asset.total.toFixed(2)}</td>
               <td className={`text-right py-3 px-4 ${asset.pnl24h < 0 ? 'text-red-500' : 'text-green-500'}`}>
                 ${Math.abs(asset.pnl24h).toFixed(2)}
