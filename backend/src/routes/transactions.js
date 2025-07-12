@@ -7,7 +7,25 @@ const router = express.Router()
 // Get recent transactions (last 10)
 router.get('/recent', authMiddleware, async (req, res) => {
   try {
-    const transactions = await Transaction.find({ userId: req.user._id })
+    // Get user with integrations to map display names
+    const user = await User.findById(req.user._id)
+    
+    // Create display name map
+    const displayNameMap = {}
+    user.integrations.forEach((integration, index) => {
+      const key = integration.name
+      const sameTypeCount = user.integrations
+        .slice(0, index)
+        .filter(i => i.name === integration.name && i.type === integration.type).length
+      
+      displayNameMap[key] = integration.displayName || 
+        `${integration.name} ${integration.type === 'wallet' ? 'Wallet' : 'Exchange'} ${sameTypeCount + 1}`
+    })
+    
+    const transactions = await Transaction.find({ 
+      userId: req.user._id,
+      source: { $nin: ['Test Exchange', 'Test Wallet'] } // Exclude test sources
+    })
       .sort({ timestamp: -1 })
       .limit(10)
     
@@ -16,10 +34,8 @@ router.get('/recent', authMiddleware, async (req, res) => {
       id: tx._id,
       date: tx.timestamp,
       type: tx.type,
-      asset: `${tx.asset.amount}${tx.asset.symbol}`,
-      amount: tx.asset.amount,
-      value: tx.value,
-      portfolio: `${tx.source} (${tx.sourceType})`,
+      asset: `${tx.asset.amount} ${tx.asset.symbol}`,
+      portfolio: displayNameMap[tx.source] || tx.source,
       status: tx.status,
       txHash: tx.txHash
     }))

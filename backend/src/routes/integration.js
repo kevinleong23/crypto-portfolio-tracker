@@ -16,6 +16,7 @@ router.get('/', authMiddleware, async (req, res) => {
       id: integration._id,
       type: integration.type,
       name: integration.name,
+      displayName: integration.displayName || `${integration.name} ${integration.type === 'wallet' ? 'Wallet' : 'Exchange'} ${user.integrations.filter(i => i.name === integration.name && i.type === integration.type).indexOf(integration) + 1}`,
       walletAddress: integration.walletAddress,
       isActive: integration.isActive,
       addedAt: integration.addedAt
@@ -160,6 +161,38 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Remove integration error:', error)
     res.status(500).json({ message: 'Failed to remove integration' })
+  }
+})
+
+// Update integration display name
+router.patch('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { displayName } = req.body
+    
+    // Find integration
+    const integration = req.user.integrations.find(
+      int => int._id.toString() === id
+    )
+    
+    if (!integration) {
+      return res.status(404).json({ message: 'Integration not found' })
+    }
+    
+    // Update display name
+    integration.displayName = displayName
+    await req.user.save()
+    
+    res.json({ 
+      message: 'Integration updated successfully',
+      integration: {
+        id: integration._id,
+        displayName: integration.displayName
+      }
+    })
+  } catch (error) {
+    console.error('Update integration error:', error)
+    res.status(500).json({ message: 'Failed to update integration' })
   }
 })
 

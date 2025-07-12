@@ -24,11 +24,16 @@ function StackedBarChart({ assets }) {
   
   const tokensTotal = assets
     .filter(asset => !stablecoins.includes(asset.symbol))
-    .reduce((sum, asset) => sum + asset.total, 0)
+    .reduce((sum, asset) => sum + (asset.totalValue || asset.total || 0), 0)
   
   const stablecoinTotal = assets
     .filter(asset => stablecoins.includes(asset.symbol))
-    .reduce((sum, asset) => sum + asset.total, 0)
+    .reduce((sum, asset) => sum + (asset.totalValue || asset.total || 0), 0)
+
+  // Only show chart if there's data
+  if (tokensTotal === 0 && stablecoinTotal === 0) {
+    return <div className="text-center py-20 text-dark-muted">No assets found</div>
+  }
 
   const data = {
     labels: ['Asset Allocation'],

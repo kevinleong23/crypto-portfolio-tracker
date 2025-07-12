@@ -5,6 +5,7 @@ const { decrypt } = require('../utils/encryption')
 const { getExchangeBalances } = require('./exchangeService')
 const { getWalletBalances } = require('./walletService')
 const { CoinGeckoService, symbolToCoinGeckoId } = require('./coinGeckoService')
+const { syncAllTransactions } = require('./transactionSyncService')
 
 const coinGecko = new CoinGeckoService(process.env.COINGECKO_API_KEY)
 
@@ -151,6 +152,9 @@ async function syncPortfolio(userId) {
       
       await portfolio.save()
     }
+    
+    // Sync wallet transactions
+    await syncAllTransactions(userId, user.integrations)
     
     return {
       assetsUpdated: portfolio.assets.length,

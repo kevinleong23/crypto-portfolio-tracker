@@ -9,11 +9,16 @@ function PieChart({ assets }) {
     !['USDT', 'USDC', 'BUSD', 'DAI'].includes(asset.symbol)
   )
 
+  // Only show chart if there's data
+  if (nonStableAssets.length === 0) {
+    return <div className="text-center py-20 text-dark-muted">No non-stable assets found</div>
+  }
+
   const data = {
     labels: nonStableAssets.map(asset => asset.symbol),
     datasets: [
       {
-        data: nonStableAssets.map(asset => asset.total),
+        data: nonStableAssets.map(asset => asset.totalValue || asset.total || 0),
         backgroundColor: [
           'rgba(59, 130, 246, 0.8)',   // Blue
           'rgba(147, 51, 234, 0.8)',   // Purple
