@@ -11,6 +11,8 @@ function Integration() {
   const [apiKey, setApiKey] = useState('')
   const [apiSecret, setApiSecret] = useState('')
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState(null)
+  const [editingName, setEditingName] = useState('')
   
   const [connections, setConnections] = useState([])
 
@@ -78,10 +80,26 @@ function Integration() {
     }
   }
 
+  const handleEditName = (id, currentName) => {
+    setEditingId(id)
+    setEditingName(currentName)
+  }
+
+  const handleSaveName = async (id) => {
+    try {
+      await integrationAPI.updateName(id, editingName)
+      await fetchIntegrations()
+      setEditingId(null)
+      showError('Name updated successfully')
+    } catch (error) {
+      showError('Failed to update name')
+    }
+  }
+
   const handleDisconnect = async (id) => {
     try {
       await integrationAPI.remove(id)
-      await fetchIntegrations() // Refresh the list
+      await fetchIntegrations()
       showError('Integration removed successfully')
     } catch (error) {
       showError('Failed to remove integration')
@@ -110,10 +128,27 @@ function Integration() {
             <div className="space-y-3">
               {connections.map((conn) => (
                 <div key={conn.id} className="flex justify-between items-center p-3 bg-dark-bg rounded border border-dark-border">
-                  <div>
-                    <span className="font-medium">{conn.name}</span>
-                    {conn.type === 'wallet' && conn.walletAddress && (
-                      <span className="text-sm text-dark-muted ml-2">
+                  <div className="flex items-center gap-2">
+                    {editingId === conn.id ? (
+                      <input
+                        type="text"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onBlur={() => handleSaveName(conn.id)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleSaveName(conn.id)}
+                        className="px-2 py-1 bg-dark-card border border-dark-border rounded focus:outline-none focus:border-blue-500"
+                        autoFocus
+                      />
+                    ) : (
+                      <span 
+                        className="font-medium cursor-pointer hover:text-blue-400"
+                        onClick={() => handleEditName(conn.id, conn.displayName)}
+                      >
+                        {conn.displayName}
+                      </span>
+                    )}
+                    {conn.walletAddress && (
+                      <span className="text-sm text-dark-muted">
                         ({conn.walletAddress.slice(0, 6)}...{conn.walletAddress.slice(-4)})
                       </span>
                     )}
@@ -126,6 +161,13 @@ function Integration() {
                   </button>
                 </div>
               ))}
+
+              {/* Show helpful hint */}
+              {connections.length > 0 && (
+                <p className="text-sm text-dark-muted mt-2">
+                  Click on a name to edit it
+                </p>
+              )}
             </div>
           )}
         </div>

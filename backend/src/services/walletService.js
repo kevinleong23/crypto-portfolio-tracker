@@ -175,15 +175,17 @@ async function getWalletTransactions(walletType, address, limit = 10) {
       // Using Etherscan API (requires API key for production)
       const etherscanApiKey = process.env.ETHERSCAN_API_KEY || 'YourEtherscanAPIKey'
       
-      const response = await axios.get(
+      // Fetch normal transactions (ETH)
+      const txlistResponse = await axios.get(
         `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&sort=desc&apikey=${etherscanApiKey}`
       )
       
-      if (response.data.result && Array.isArray(response.data.result)) {
-        const txs = response.data.result.slice(0, limit)
+      if (txlistResponse.data.result && Array.isArray(txlistResponse.data.result)) {
+        const txs = txlistResponse.data.result
         
         for (const tx of txs) {
-          const type = tx.to.toLowerCase() === address.toLowerCase() ? 'Received' : 'Sent'
+          const isReceived = tx.to.toLowerCase() === address.toLowerCase()
+          const type = isReceived ? 'Received' : 'Sent'
           const amount = parseFloat(tx.value) / 1e18
           
           if (amount > 0) {
@@ -194,7 +196,7 @@ async function getWalletTransactions(walletType, address, limit = 10) {
                 name: 'Ethereum',
                 amount
               },
-              value: amount * 2000, // You'd fetch real price here
+              value: 0, // Would need price lookup
               source: 'MetaMask',
               sourceType: 'wallet',
               txHash: tx.hash,
@@ -204,6 +206,45 @@ async function getWalletTransactions(walletType, address, limit = 10) {
           }
         }
       }
+
+      // Also fetch ERC-20 token transactions
+      const tokenTxResponse = await axios.get(
+        `https://api.etherscan.io/api?module=account&action=tokentx&address=${address}&startblock=0&endblock=99999999&sort=desc&apikey=${etherscanApiKey}`
+      )
+      
+      if (tokenTxResponse.data.result && Array.isArray(tokenTxResponse.data.result)) {
+        const tokenTxs = tokenTxResponse.data.result
+        
+        for (const tx of tokenTxs) {
+          const isReceived = tx.to.toLowerCase() === address.toLowerCase()
+          const type = isReceived ? 'Received' : 'Sent'
+          const amount = parseFloat(tx.value) / Math.pow(10, parseInt(tx.tokenDecimal))
+          
+          if (amount > 0) {
+            transactions.push({
+              type,
+              asset: {
+                symbol: tx.tokenSymbol,
+                name: tx.tokenName,
+                amount
+              },
+              value: 0, // Token value would need price lookup
+              source: 'MetaMask',
+              sourceType: 'wallet',
+              txHash: tx.hash,
+              timestamp: new Date(parseInt(tx.timeStamp) * 1000),
+              status: 'completed'
+            })
+          }
+        }
+      }
+      
+      // Sort all transactions by timestamp (newest first)
+      transactions.sort((a, b) => b.timestamp - a.timestamp)
+      
+      // Return only the requested limit
+      return transactions.slice(0, limit)
+
     } else if (walletType === 'Phantom') {
       // For Solana, we'd need to use different approach
       // This is simplified - full implementation would parse more transaction types

@@ -67,7 +67,8 @@ export const integrationAPI = {
     api.post('/integration/exchange', { exchange, apiKey, apiSecret }),
   addWallet: (walletType, address) => 
     api.post('/integration/wallet', { walletType, address }),
-  remove: (id) => api.delete(`/integration/${id}`)
+  remove: (id) => api.delete(`/integration/${id}`),
+  updateName: (id, displayName) => api.patch(`/integration/${id}`, { displayName })
 }
 
 // Transaction API
