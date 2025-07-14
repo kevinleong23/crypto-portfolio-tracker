@@ -14,15 +14,18 @@ async function syncWalletTransactions(userId, integration) {
     
     // Save new transactions to database
     for (const tx of walletTxs) {
-      // Check if transaction already exists
+      // Check if transaction already exists for this specific integration
       const existing = await Transaction.findOne({
         userId,
-        txHash: tx.txHash
+        txHash: tx.txHash,
+        type: tx.type,
+        integrationId: integration._id
       })
       
       if (!existing && tx.asset.amount > 0) {
         const transaction = new Transaction({
           userId,
+          integrationId: integration._id, // Add integrationId
           type: tx.type,
           asset: tx.asset,
           value: tx.value,
@@ -37,7 +40,7 @@ async function syncWalletTransactions(userId, integration) {
       }
     }
     
-    console.log(`Synced ${walletTxs.length} transactions for ${integration.name}`)
+    console.log(`Synced ${walletTxs.length} transactions for ${integration.name} (${integration.walletAddress})`)
   } catch (error) {
     console.error(`Failed to sync transactions for ${integration.name}:`, error)
   }

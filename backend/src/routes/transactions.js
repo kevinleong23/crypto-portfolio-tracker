@@ -5,38 +5,44 @@ const authMiddleware = require('../middleware/auth')
 
 const router = express.Router()
 
-// Get recent transactions (last 10)
+// Get recent transactions (last 10 per integration)
 router.get('/recent', authMiddleware, async (req, res) => {
   try {
-    // Get user with integrations to map display names
     const user = await User.findById(req.user._id)
-    
-    // Create display name map
     const displayNameMap = {}
-    user.integrations.forEach((integration, index) => {
-      const key = integration.name
-      const sameTypeCount = user.integrations
-        .slice(0, index)
-        .filter(i => i.name === integration.name && i.type === integration.type).length
-      
-      displayNameMap[key] = integration.displayName || 
-        `${integration.name} ${integration.type === 'wallet' ? 'Wallet' : 'Exchange'} ${sameTypeCount + 1}`
-    })
+    const allTransactions = []
+
+    for (const integration of user.integrations) {
+      if (integration.type === 'wallet' && integration.isActive) {
+        const key = integration._id.toString();
+        const sameTypeIntegrations = user.integrations.filter(i => i.name === integration.name && i.type === integration.type);
+        const sameTypeIndex = sameTypeIntegrations.findIndex(i => i._id.toString() === key);
+        const count = sameTypeIndex + 1;
+        
+        displayNameMap[key] = integration.displayName || 
+          `${integration.name} ${integration.type === 'wallet' ? 'Wallet' : 'Exchange'} ${count}`
+
+        const transactions = await Transaction.find({ 
+          userId: req.user._id,
+          integrationId: integration._id 
+        })
+          .sort({ timestamp: -1 })
+          .limit(10)
+        
+        allTransactions.push(...transactions)
+      }
+    }
     
-    const transactions = await Transaction.find({ 
-      userId: req.user._id,
-      source: { $nin: ['Test Exchange', 'Test Wallet'] } // Exclude test sources
-    })
-      .sort({ timestamp: -1 })
-      .limit(10)
+    // Sort all fetched transactions by date
+    allTransactions.sort((a, b) => b.timestamp - a.timestamp)
     
-    // Format transactions for frontend
-    const formattedTransactions = transactions.map(tx => ({
+    // Format the latest 10 transactions
+    const formattedTransactions = allTransactions.slice(0, 10).map(tx => ({
       id: tx._id,
       date: tx.timestamp,
       type: tx.type,
       asset: `${tx.asset.amount} ${tx.asset.symbol}`,
-      portfolio: displayNameMap[tx.source] || tx.source,
+      portfolio: displayNameMap[tx.integrationId.toString()] || tx.source,
       status: tx.status,
       txHash: tx.txHash
     }))

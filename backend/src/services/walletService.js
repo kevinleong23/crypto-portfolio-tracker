@@ -176,39 +176,36 @@ async function getWalletTransactions(walletType, address, limit = 10) {
       // Using Etherscan API (requires API key for production)
       const etherscanApiKey = process.env.ETHERSCAN_API_KEY || 'YourEtherscanAPIKey'
       
-      // Fetch normal transactions (ETH)
+      // Fetch normal transactions (ETH) - only Sent/Received
       const txlistResponse = await axios.get(
         `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&sort=desc&apikey=${etherscanApiKey}`
       )
       
       if (txlistResponse.data.result && Array.isArray(txlistResponse.data.result)) {
-        const txs = txlistResponse.data.result
+        const txs = txlistResponse.data.result.filter(tx => parseFloat(tx.value) > 0);
         
         for (const tx of txs) {
           const isReceived = tx.to.toLowerCase() === address.toLowerCase()
           const type = isReceived ? 'Received' : 'Sent'
           const amount = parseFloat(tx.value) / 1e18
           
-          if (amount > 0) {
-            transactions.push({
-              type,
-              asset: {
-                symbol: 'ETH',
-                name: 'Ethereum',
-                amount
-              },
-              value: 0, // Would need price lookup
-              source: 'MetaMask',
-              sourceType: 'wallet',
-              txHash: tx.hash,
-              timestamp: new Date(parseInt(tx.timeStamp) * 1000),
-              status: tx.isError === '0' ? 'completed' : 'failed'
-            })
-          }
+          transactions.push({
+            type,
+            asset: { symbol: 'ETH', name: 'Ethereum', amount },
+            value: 0, // Would need price lookup
+            source: 'MetaMask',
+            sourceType: 'wallet',
+            txHash: tx.hash,
+            timestamp: new Date(parseInt(tx.timeStamp) * 1000),
+            status: tx.isError === '0' ? 'completed' : 'failed'
+          })
         }
       }
 
-      // Also fetch ERC-20 token transactions
+      // Add a more substantial delay to reliably avoid API rate limits
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Also fetch ERC-20 token transactions - only Sent/Received
       const tokenTxResponse = await axios.get(
         `https://api.etherscan.io/api?module=account&action=tokentx&address=${address}&startblock=0&endblock=99999999&sort=desc&apikey=${etherscanApiKey}`
       )
@@ -224,11 +221,7 @@ async function getWalletTransactions(walletType, address, limit = 10) {
           if (amount > 0) {
             transactions.push({
               type,
-              asset: {
-                symbol: tx.tokenSymbol,
-                name: tx.tokenName,
-                amount
-              },
+              asset: { symbol: tx.tokenSymbol, name: tx.tokenName, amount },
               value: 0, // Token value would need price lookup
               source: 'MetaMask',
               sourceType: 'wallet',
@@ -240,36 +233,47 @@ async function getWalletTransactions(walletType, address, limit = 10) {
         }
       }
       
-      // Sort all transactions by timestamp (newest first)
-      transactions.sort((a, b) => b.timestamp - a.timestamp)
-      
-      // Return only the requested limit
-      return transactions.slice(0, limit)
+      // Sort all transactions by timestamp (newest first) and limit
+      return transactions.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
 
     } else if (walletType === 'Phantom') {
-      // For Solana, we'd need to use different approach
-      // This is simplified - full implementation would parse more transaction types
-      const connection = new Connection('https://api.mainnet-beta.solana.com')
-      const publicKey = new PublicKey(address)
-      
-      const signatures = await connection.getSignaturesForAddress(publicKey, { limit })
-      
-      for (const sig of signatures) {
-        transactions.push({
-          type: 'Transfer',
-          asset: {
-            symbol: 'SOL',
-            name: 'Solana',
-            amount: 0 // Would need to fetch full transaction to get amount
-          },
-          value: 0,
-          source: 'Phantom',
-          sourceType: 'wallet',
-          txHash: sig.signature,
-          timestamp: new Date(sig.blockTime * 1000),
-          status: sig.err ? 'failed' : 'completed'
-        })
-      }
+        const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+        const publicKey = new PublicKey(address);
+
+        const signatures = await connection.getSignaturesForAddress(publicKey, { limit: limit * 2 });
+
+        for (const sig of signatures) {
+            // Add a delay to avoid rate-limiting
+            await new Promise(resolve => setTimeout(resolve, 250));
+            const tx = await connection.getParsedTransaction(sig.signature, { "maxSupportedTransactionVersion": 0 });
+            if (!tx || !tx.meta || tx.meta.err) continue;
+
+            const accountKeys = tx.transaction.message.accountKeys.map(key => key.pubkey.toBase58());
+            const accountIndex = accountKeys.indexOf(address);
+
+            if (accountIndex === -1) continue;
+
+            const preBalance = tx.meta.preBalances[accountIndex];
+            const postBalance = tx.meta.postBalances[accountIndex];
+            const balanceChange = (postBalance - preBalance) / 1e9;
+
+            if (Math.abs(balanceChange) > 1e-9) { 
+                const type = balanceChange > 0 ? 'Received' : 'Sent';
+                const amount = Math.abs(balanceChange);
+
+                 transactions.push({
+                    type,
+                    asset: { symbol: 'SOL', name: 'Solana', amount },
+                    value: 0, 
+                    source: 'Phantom',
+                    sourceType: 'wallet',
+                    txHash: sig.signature,
+                    timestamp: new Date(sig.blockTime * 1000),
+                    status: 'completed',
+                });
+            }
+        }
+        return transactions.slice(0, limit);
     }
     
     return transactions

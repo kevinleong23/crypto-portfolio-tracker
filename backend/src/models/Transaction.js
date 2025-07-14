@@ -6,6 +6,11 @@ const transactionSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  integrationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User.integrations',
+    required: true
+  },
   type: {
     type: String,
     enum: ['Received', 'Sent', 'Buy', 'Sell', 'Swap'],
@@ -64,7 +69,7 @@ const transactionSchema = new mongoose.Schema({
 // Indexes for efficient queries
 transactionSchema.index({ userId: 1, timestamp: -1 })
 transactionSchema.index({ userId: 1, 'asset.symbol': 1 })
-transactionSchema.index({ txHash: 1 })
+transactionSchema.index({ txHash: 1, type: 1 }) // Changed index to include type
 
 // Virtual for display format
 transactionSchema.virtual('displayAmount').get(function() {

@@ -1,5 +1,6 @@
 const express = require('express')
 const User = require('../models/User')
+const Transaction = require('../models/Transaction') // Import Transaction model
 const authMiddleware = require('../middleware/auth')
 const { encrypt, decrypt } = require('../utils/encryption')
 const { validateExchangeKeys } = require('../services/exchangeService')
@@ -10,17 +11,23 @@ const router = express.Router()
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('integrations')
-    
+
     // Don't send encrypted keys to frontend
-    const integrations = user.integrations.map(integration => ({
-      id: integration._id,
-      type: integration.type,
-      name: integration.name,
-      displayName: integration.displayName || `${integration.name} ${integration.type === 'wallet' ? 'Wallet' : 'Exchange'} ${user.integrations.filter(i => i.name === integration.name && i.type === integration.type).indexOf(integration) + 1}`,
-      walletAddress: integration.walletAddress,
-      isActive: integration.isActive,
-      addedAt: integration.addedAt
-    }))
+    const integrations = user.integrations.map(integration => {
+        const sameTypeIntegrations = user.integrations.filter(i => i.name === integration.name && i.type === integration.type);
+        const sameTypeIndex = sameTypeIntegrations.findIndex(i => i._id.toString() === integration._id.toString());
+        const count = sameTypeIndex + 1;
+
+        return {
+            id: integration._id,
+            type: integration.type,
+            name: integration.name,
+            displayName: integration.displayName || `${integration.name} ${integration.type === 'wallet' ? 'Wallet' : 'Exchange'} ${count}`,
+            walletAddress: integration.walletAddress,
+            isActive: integration.isActive,
+            addedAt: integration.addedAt
+        }
+    })
     
     res.json(integrations)
   } catch (error) {
@@ -145,7 +152,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params
     
-    // Find and remove integration
+    // Find integration index
     const integrationIndex = req.user.integrations.findIndex(
       int => int._id.toString() === id
     )
@@ -154,10 +161,14 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Integration not found' })
     }
     
+    // Remove the integration from the user's integrations array
     req.user.integrations.splice(integrationIndex, 1)
     await req.user.save()
     
-    res.json({ message: 'Integration removed successfully' })
+    // Also remove all transactions associated with this integration
+    await Transaction.deleteMany({ userId: req.user._id, integrationId: id })
+    
+    res.json({ message: 'Integration and associated transactions removed successfully' })
   } catch (error) {
     console.error('Remove integration error:', error)
     res.status(500).json({ message: 'Failed to remove integration' })

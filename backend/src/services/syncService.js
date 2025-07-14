@@ -20,6 +20,9 @@ async function syncPortfolio(userId) {
     if (!portfolio) {
       portfolio = new Portfolio({ userId, assets: [] })
     }
+
+    // Clear existing assets to ensure only active integrations are present
+    portfolio.assets = []
     
     // Collect all balances
     const allBalances = new Map() // symbol -> { amount, sources }
