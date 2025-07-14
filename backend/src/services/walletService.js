@@ -240,39 +240,56 @@ async function getWalletTransactions(walletType, address, limit = 10) {
     } else if (walletType === 'Phantom') {
         const connection = new Connection(process.env.SOLANA_RPC_URL || 'https://solana-api.projectserum.com', 'confirmed');
         const publicKey = new PublicKey(address);
-
+    
         const signatures = await connection.getSignaturesForAddress(publicKey, { limit: limit * 2 });
-
+    
         for (const sig of signatures) {
-            // Add a delay to avoid rate-limiting
             await new Promise(resolve => setTimeout(resolve, 100));
             const tx = await connection.getParsedTransaction(sig.signature, { "maxSupportedTransactionVersion": 0 });
             if (!tx || !tx.meta || tx.meta.err) continue;
-
-            const accountKeys = tx.transaction.message.accountKeys.map(key => key.pubkey.toBase58());
-            const accountIndex = accountKeys.indexOf(address);
-
-            if (accountIndex === -1) continue;
-
-            const preBalance = tx.meta.preBalances[accountIndex];
-            const postBalance = tx.meta.postBalances[accountIndex];
-            const balanceChange = (postBalance - preBalance) / 1e9;
-
-            if (Math.abs(balanceChange) > 1e-9) { 
-                const type = balanceChange > 0 ? 'Received' : 'Sent';
-                const amount = Math.abs(balanceChange);
-
-                 transactions.push({
-                    type,
-                    asset: { symbol: 'SOL', name: 'Solana', amount },
-                    value: 0, 
-                    source: 'Phantom',
-                    sourceType: 'wallet',
-                    txHash: sig.signature,
-                    timestamp: new Date(sig.blockTime * 1000),
-                    status: 'completed',
-                });
+    
+            // Check if this is a simple SOL transfer
+            const instructions = tx.transaction.message.instructions;
+            const hasSystemTransfer = instructions.some(inst => 
+                inst.programId.toBase58() === '11111111111111111111111111111111' &&
+                inst.parsed?.type === 'transfer'
+            );
+    
+            if (!hasSystemTransfer) continue; // Skip non-transfer transactions
+    
+            // Find the transfer instruction
+            const transferInstruction = instructions.find(inst => 
+                inst.programId.toBase58() === '11111111111111111111111111111111' &&
+                inst.parsed?.type === 'transfer'
+            );
+    
+            if (!transferInstruction) continue;
+    
+            const source = transferInstruction.parsed.info.source;
+            const destination = transferInstruction.parsed.info.destination;
+            const lamports = transferInstruction.parsed.info.lamports;
+            const amount = lamports / 1e9;
+    
+            // Determine transaction type
+            let type;
+            if (source === address) {
+                type = 'Sent';
+            } else if (destination === address) {
+                type = 'Received';
+            } else {
+                continue; // Skip if neither sender nor receiver
             }
+    
+            transactions.push({
+                type,
+                asset: { symbol: 'SOL', name: 'Solana', amount },
+                value: 0,
+                source: 'Phantom',
+                sourceType: 'wallet',
+                txHash: sig.signature,
+                timestamp: new Date(sig.blockTime * 1000),
+                status: 'completed',
+            });
         }
         return transactions.slice(0, limit);
     }
