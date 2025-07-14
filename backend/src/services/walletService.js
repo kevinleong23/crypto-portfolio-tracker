@@ -1,4 +1,5 @@
 // Gemini 2.5 Pro model version
+require('dotenv').config()
 const axios = require('axios')
 const { ethers } = require('ethers')
 const { Connection, PublicKey } = require('@solana/web3.js')
@@ -91,7 +92,7 @@ async function getSolanaBalances(address) {
     const balances = []
     
     // Use public Solana RPC
-    const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed')
+    const connection = new Connection(process.env.SOLANA_RPC_URL || 'https://solana-api.projectserum.com', 'confirmed')
     const publicKey = new PublicKey(address)
     
     // Get SOL balance
@@ -237,14 +238,14 @@ async function getWalletTransactions(walletType, address, limit = 10) {
       return transactions.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
 
     } else if (walletType === 'Phantom') {
-        const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+        const connection = new Connection(process.env.SOLANA_RPC_URL || 'https://solana-api.projectserum.com', 'confirmed');
         const publicKey = new PublicKey(address);
 
         const signatures = await connection.getSignaturesForAddress(publicKey, { limit: limit * 2 });
 
         for (const sig of signatures) {
             // Add a delay to avoid rate-limiting
-            await new Promise(resolve => setTimeout(resolve, 250));
+            await new Promise(resolve => setTimeout(resolve, 100));
             const tx = await connection.getParsedTransaction(sig.signature, { "maxSupportedTransactionVersion": 0 });
             if (!tx || !tx.meta || tx.meta.err) continue;
 
