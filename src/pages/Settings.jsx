@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { userAPI } from '../services/api'
 import { useError } from '../App'
@@ -6,7 +6,7 @@ import { useError } from '../App'
 function Settings() {
   const navigate = useNavigate()
   const { showError, showSuccess } = useError()
-  const [user, setUser] = useState({ username: '', email: '' })
+  const [user, setUser] = useState({ username: '', email: '', profilePictureUrl: '' })
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -16,9 +16,9 @@ function Settings() {
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteError, setDeleteError] = useState('') // New state for modal error
   const [loading, setLoading] = useState(true)
-
-  // State for the editable username
   const [username, setUsername] = useState('')
+  const fileInputRef = useRef(null)
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -35,6 +35,22 @@ function Settings() {
     }
     fetchProfile()
   }, [showError])
+
+  const handleProfilePictureUpload = async (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    try {
+      const response = await userAPI.uploadProfilePicture(formData)
+      setUser(prevUser => ({ ...prevUser, profilePictureUrl: response.data.user.profilePictureUrl }))
+      showSuccess('Profile picture updated successfully')
+    } catch (error) {
+      showError(error.response?.data?.message || 'Failed to upload profile picture')
+    }
+  }
 
   const handleSaveProfile = async () => {
     try {
@@ -110,33 +126,61 @@ function Settings() {
         <div className="bg-dark-card p-6 rounded-lg border border-dark-border mb-6">
           <h2 className="text-xl font-semibold mb-4">Profile Settings</h2>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Username</label>
+          <div className="flex items-center gap-6 mb-6">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full bg-dark-bg overflow-hidden flex items-center justify-center">
+                {user.profilePictureUrl ? (
+                  <img src={`${API_URL.replace('/api', '')}${user.profilePictureUrl}?${new Date().getTime()}`} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-3xl font-bold text-dark-muted">{user.username?.charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+              <button
+                onClick={() => fileInputRef.current.click()}
+                className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 w-8 h-8 rounded-full flex items-center justify-center text-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                  <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+                </svg>
+              </button>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-2 bg-dark-bg border border-dark-border rounded focus:outline-none focus:border-blue-500"
+                type="file"
+                ref={fileInputRef}
+                hidden
+                accept="image/jpeg,image/png,image/jpg"
+                onChange={handleProfilePictureUpload}
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Email (non-editable)</label>
-              <input
-                type="email"
-                value={user.email}
-                disabled
-                className="w-full px-4 py-2 bg-dark-bg border border-dark-border rounded opacity-50 cursor-not-allowed"
-              />
-            </div>
+            <div className="space-y-4 flex-1">
+              <div>
+                <label className="block text-sm font-medium mb-2">Username</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-4 py-2 bg-dark-bg border border-dark-border rounded focus:outline-none focus:border-blue-500"
+                />
+              </div>
 
-            <button
-              onClick={handleSaveProfile}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
-            >
-              Save Changes
-            </button>
+              <div>
+                <label className="block text-sm font-medium mb-2">Email (non-editable)</label>
+                <input
+                  type="email"
+                  value={user.email}
+                  disabled
+                  className="w-full px-4 py-2 bg-dark-bg border border-dark-border rounded opacity-50 cursor-not-allowed"
+                />
+              </div>
+
+              <button
+                onClick={handleSaveProfile}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
 

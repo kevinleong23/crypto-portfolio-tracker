@@ -50,6 +50,11 @@ export const authAPI = {
 export const userAPI = {
   getProfile: () => api.get('/user/profile'),
   updateProfile: (data) => api.patch('/user/profile', data),
+  uploadProfilePicture: (formData) => api.post('/user/profile-picture', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  }),
   changePassword: (currentPassword, newPassword) =>
     api.post('/user/change-password', { currentPassword, newPassword }),
   toggle2FA: (enable) => api.post('/user/2fa/toggle', { enable }),

@@ -25,6 +25,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     sparse: true
   },
+  profilePictureUrl: {
+    type: String
+  },
   twoFactorEnabled: {
     type: Boolean,
     default: false

@@ -1,9 +1,43 @@
 const express = require('express')
 const bcrypt = require('bcryptjs')
+const multer = require('multer')
+const path = require('path')
+const fs = require('fs')
 const User = require('../models/User')
 const authMiddleware = require('../middleware/auth')
 
 const router = express.Router()
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, '..', '..', 'public', 'uploads', 'avatars')
+    fs.mkdirSync(uploadPath, { recursive: true })
+    cb(null, uploadPath)
+  },
+  filename: function (req, file, cb) {
+    const userId = req.user._id
+    const extension = path.extname(file.originalname)
+    cb(null, `${userId}${extension}`)
+  }
+})
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png/
+  const mimetype = allowedTypes.test(file.mimetype)
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase())
+
+  if (mimetype && extname) {
+    return cb(null, true)
+  }
+  cb(new Error('Only .jpeg, .jpg, and .png formats are allowed'))
+}
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 2 * 1024 * 1024 } // 2MB limit
+})
 
 // Get user profile
 router.get('/profile', authMiddleware, async (req, res) => {
@@ -13,6 +47,40 @@ router.get('/profile', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Get profile error:', error)
     res.status(500).json({ message: 'Failed to fetch profile' })
+  }
+})
+
+// Upload profile picture
+router.post('/profile-picture', authMiddleware, upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' })
+    }
+
+    const user = await User.findById(req.user._id)
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    const profilePictureUrl = `/public/uploads/avatars/${req.file.filename}`
+    user.profilePictureUrl = profilePictureUrl
+    await user.save()
+
+    res.json({
+      message: 'Profile picture uploaded successfully',
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        profilePictureUrl: user.profilePictureUrl
+      }
+    })
+  } catch (error) {
+    console.error('Profile picture upload error:', error)
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'File is too large. Maximum size is 2MB.' })
+    }
+    res.status(500).json({ message: error.message || 'Failed to upload profile picture' })
   }
 })
 
