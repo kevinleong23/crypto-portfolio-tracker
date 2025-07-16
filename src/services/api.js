@@ -74,6 +74,7 @@ export const integrationAPI = {
 // Transaction API
 export const transactionAPI = {
   getRecent: () => api.get('/transactions/recent'),
+  getRecentByWallet: (integrationId) => api.get(`/transactions/recent/${integrationId}`),
   getByAsset: (symbol, limit = 50, skip = 0) => 
     api.get(`/transactions/asset/${symbol}?limit=${limit}&skip=${skip}`),
   getStats: () => api.get('/transactions/stats'),

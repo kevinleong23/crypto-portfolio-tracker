@@ -4,7 +4,7 @@ import AssetTable from '../components/tables/AssetTable'
 import PieChart from '../components/charts/PieChart'
 import StackedBarChart from '../components/charts/StackedBarChart'
 import TransactionTable from '../components/tables/TransactionTable'
-import { portfolioAPI, transactionAPI } from '../services/api'
+import { portfolioAPI, transactionAPI, integrationAPI } from '../services/api'
 import { useError } from '../App'
 
 function AssetDetails() {
@@ -13,10 +13,21 @@ function AssetDetails() {
   const [loading, setLoading] = useState(true)
   const [assets, setAssets] = useState([])
   const [transactions, setTransactions] = useState([])
+  const [wallets, setWallets] = useState([])
+  const [selectedWalletId, setSelectedWalletId] = useState('')
+  const [loadingTransactions, setLoadingTransactions] = useState(false)
 
   useEffect(() => {
     fetchData()
   }, [])
+
+  useEffect(() => {
+    if (selectedWalletId && wallets.length > 0) {
+      fetchTransactions()
+      // Save selection to localStorage
+      localStorage.setItem('selectedWalletId', selectedWalletId)
+    }
+  }, [selectedWalletId])
 
   const fetchData = async () => {
     try {
@@ -24,14 +35,46 @@ function AssetDetails() {
       const assetsResponse = await portfolioAPI.getAssets()
       setAssets(assetsResponse.data.assets || [])
 
-      // Fetch recent transactions
-      const transactionsResponse = await transactionAPI.getRecent()
-      setTransactions(transactionsResponse.data || [])
+      // Fetch wallets for dropdown
+      const integrationsResponse = await integrationAPI.getAll()
+      const walletIntegrations = integrationsResponse.data.filter(
+        integration => integration.type === 'wallet'
+      )
+      setWallets(walletIntegrations)
+
+      // Set initial wallet selection
+      if (walletIntegrations.length > 0) {
+        const savedWalletId = localStorage.getItem('selectedWalletId')
+        const savedWalletExists = walletIntegrations.find(w => w.id === savedWalletId)
+        
+        // Use saved wallet if it exists, otherwise use first wallet
+        const initialWalletId = savedWalletExists ? savedWalletId : walletIntegrations[0].id
+        setSelectedWalletId(initialWalletId)
+      }
     } catch (error) {
       showError('Failed to load asset details')
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchTransactions = async () => {
+    if (!selectedWalletId) return
+    
+    setLoadingTransactions(true)
+    try {
+      const response = await transactionAPI.getRecentByWallet(selectedWalletId)
+      setTransactions(response.data || [])
+    } catch (error) {
+      console.error('Failed to load transactions:', error)
+      setTransactions([])
+    } finally {
+      setLoadingTransactions(false)
+    }
+  }
+
+  const handleWalletChange = (walletId) => {
+    setSelectedWalletId(walletId)
   }
 
   if (loading) {
@@ -90,8 +133,45 @@ function AssetDetails() {
 
         {/* Transaction History */}
         <div className="bg-dark-card p-6 rounded-lg border border-dark-border">
-          <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
-          <TransactionTable transactions={transactions} />
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Recent Transactions</h2>
+            
+            {/* Wallet Dropdown */}
+            {wallets.length > 0 && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-dark-muted">Wallet:</label>
+                <select
+                  value={selectedWalletId}
+                  onChange={(e) => handleWalletChange(e.target.value)}
+                  className="px-3 py-1 bg-dark-bg border border-dark-border rounded focus:outline-none focus:border-blue-500 text-sm"
+                >
+                  {wallets.map((wallet) => (
+                    <option key={wallet.id} value={wallet.id}>
+                      {wallet.displayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {wallets.length === 0 ? (
+            <div className="text-center py-8 text-dark-muted">
+              <p>No wallets connected. Connect a wallet to view transactions.</p>
+              <button
+                onClick={() => navigate('/integration')}
+                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
+              >
+                Add Wallet
+              </button>
+            </div>
+          ) : loadingTransactions ? (
+            <div className="text-center py-8 text-dark-muted">
+              Loading transactions...
+            </div>
+          ) : (
+            <TransactionTable transactions={transactions} />
+          )}
         </div>
       </div>
     </div>
