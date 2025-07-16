@@ -99,4 +99,28 @@ router.post('/2fa/toggle', authMiddleware, async (req, res) => {
   }
 })
 
+// Delete account
+router.delete('/profile', authMiddleware, async (req, res) => {
+  try {
+    const { password } = req.body
+
+    // Get user with password
+    const user = await User.findById(req.user._id)
+
+    // Verify password
+    const isMatch = await user.comparePassword(password)
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Incorrect password' })
+    }
+
+    // Remove user and associated data (will trigger pre-remove hook)
+    await user.deleteOne()
+
+    res.json({ message: 'Account deleted successfully' })
+  } catch (error) {
+    console.error('Delete account error:', error)
+    res.status(500).json({ message: 'Failed to delete account' })
+  }
+})
+
 module.exports = router

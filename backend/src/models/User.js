@@ -100,4 +100,17 @@ userSchema.pre('save', function(next) {
   next()
 })
 
+// Pre-remove hook to delete associated data
+userSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
+  try {
+    // Delete associated portfolio
+    await this.model('Portfolio').deleteOne({ userId: this._id });
+    // Delete associated transactions
+    await this.model('Transaction').deleteMany({ userId: this._id });
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = mongoose.model('User', userSchema)

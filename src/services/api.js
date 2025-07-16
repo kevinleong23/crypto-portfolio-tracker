@@ -28,7 +28,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isDeleteProfileRequest =
+      error.config.method === 'delete' && error.config.url.endsWith('/user/profile');
+
+    if (error.response?.status === 401 && !isDeleteProfileRequest) {
       localStorage.removeItem('authToken')
       window.location.href = '/login'
     }
@@ -47,9 +50,10 @@ export const authAPI = {
 export const userAPI = {
   getProfile: () => api.get('/user/profile'),
   updateProfile: (data) => api.patch('/user/profile', data),
-  changePassword: (currentPassword, newPassword) => 
+  changePassword: (currentPassword, newPassword) =>
     api.post('/user/change-password', { currentPassword, newPassword }),
-  toggle2FA: (enable) => api.post('/user/2fa/toggle', { enable })
+  toggle2FA: (enable) => api.post('/user/2fa/toggle', { enable }),
+  deleteAccount: (password) => api.delete('/user/profile', { data: { password } }),
 }
 
 // Portfolio API
