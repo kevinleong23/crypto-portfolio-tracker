@@ -5,7 +5,7 @@ import { useError } from '../App'
 
 function Integration() {
   const navigate = useNavigate()
-  const { showError } = useError()
+  const { showError, showSuccess } = useError()
   const [showApiForm, setShowApiForm] = useState(false)
   const [selectedExchange, setSelectedExchange] = useState('')
   const [apiKey, setApiKey] = useState('')
@@ -38,12 +38,12 @@ function Integration() {
     if (apiKey && apiSecret && selectedExchange) {
       try {
         const response = await integrationAPI.addExchange(selectedExchange, apiKey, apiSecret)
-        await fetchIntegrations() // Refresh the list
+        await fetchIntegrations()
         setShowApiForm(false)
         setApiKey('')
         setApiSecret('')
         setSelectedExchange('')
-        showError(response.data.message)
+        showSuccess(response.data.message)
       } catch (error) {
         showError(error.response?.data?.message || 'Failed to connect exchange')
       }
@@ -73,8 +73,8 @@ function Integration() {
       }
 
       const response = await integrationAPI.addWallet(walletType, address)
-      await fetchIntegrations() // Refresh the list
-      showError(response.data.message)
+      await fetchIntegrations()
+      showSuccess(response.data.message)
     } catch (error) {
       showError(error.response?.data?.message || 'Failed to connect wallet')
     }
@@ -90,7 +90,7 @@ function Integration() {
       await integrationAPI.updateName(id, editingName)
       await fetchIntegrations()
       setEditingId(null)
-      showError('Name updated successfully')
+      showSuccess('Name updated successfully')
     } catch (error) {
       showError('Failed to update name')
     }
@@ -100,7 +100,7 @@ function Integration() {
     try {
       await integrationAPI.remove(id)
       await fetchIntegrations()
-      showError('Integration removed successfully')
+      showSuccess('Integration removed successfully')
     } catch (error) {
       showError('Failed to remove integration')
     }

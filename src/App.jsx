@@ -8,6 +8,7 @@ import Integration from './pages/Integration'
 import AssetDetails from './pages/AssetDetails'
 import Settings from './pages/Settings'
 import ErrorBanner from './components/common/ErrorBanner'
+import SuccessBanner from './components/common/SuccessBanner' // Import SuccessBanner
 import Navigation from './components/common/Navigation'
 
 // Error Context
@@ -24,34 +25,44 @@ export const useError = () => {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null) // State for success messages
   
   useEffect(() => {
-    // Check if user is logged in
     const token = localStorage.getItem('authToken')
     setIsAuthenticated(!!token)
   }, [])
 
   const showError = (message) => {
     setError(message)
+    setSuccess(null) // Clear success message when an error occurs
+  }
+
+  const showSuccess = (message) => {
+    setSuccess(message)
+    setError(null) // Clear error message when a success message is shown
   }
 
   const clearError = () => {
     setError(null)
   }
 
+  const clearSuccess = () => {
+    setSuccess(null)
+  }
+
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-client-id-here'
 
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
-      <ErrorContext.Provider value={{ showError, clearError }}>
+      <ErrorContext.Provider value={{ showError, showSuccess, clearError, clearSuccess }}>
         <Router>
           <ErrorBanner 
             error={error} 
             onDismiss={clearError}
-            onRetry={() => {
-              clearError()
-              // Implement retry logic based on error type
-            }}
+          />
+          <SuccessBanner
+            message={success}
+            onDismiss={clearSuccess}
           />
           {isAuthenticated && <Navigation />}
           <Routes>

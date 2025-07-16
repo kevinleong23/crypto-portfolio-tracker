@@ -5,7 +5,7 @@ import { useError } from '../App'
 
 function Settings() {
   const navigate = useNavigate()
-  const { showError } = useError()
+  const { showError, showSuccess } = useError()
   const [user, setUser] = useState({ username: '', email: '' })
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -39,7 +39,7 @@ function Settings() {
   const handleSaveProfile = async () => {
     try {
       await userAPI.updateProfile({ username })
-      showError('Profile updated successfully')
+      showSuccess('Profile updated successfully')
     } catch (error) {
       showError(error.response?.data?.message || 'Failed to update profile')
     }
@@ -52,7 +52,7 @@ function Settings() {
     }
     try {
       await userAPI.changePassword(currentPassword, newPassword)
-      showError('Password changed successfully')
+      showSuccess('Password changed successfully')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
@@ -66,7 +66,7 @@ function Settings() {
     try {
       const response = await userAPI.toggle2FA(!twoFA)
       setTwoFA(response.data.twoFactorEnabled)
-      showError(`2FA ${response.data.twoFactorEnabled ? 'enabled' : 'disabled'}`)
+      showSuccess(`2FA ${response.data.twoFactorEnabled ? 'enabled' : 'disabled'}`)
     } catch (error) {
       showError('Failed to toggle 2FA')
     }
@@ -78,9 +78,9 @@ function Settings() {
       return
     }
     try {
-      setDeleteError('') // Clear previous errors
+      setDeleteError('')
       await userAPI.deleteAccount(deletePassword)
-      showError('Account deleted successfully.')
+      showSuccess('Account deleted successfully.')
       handleLogout()
     } catch (error) {
       // Set the specific error for the modal

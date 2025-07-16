@@ -7,7 +7,7 @@ import { useError } from '../App'
 
 function Dashboard() {
   const navigate = useNavigate()
-  const { showError } = useError()
+  const { showError, showSuccess } = useError()
   const [timeframe, setTimeframe] = useState('24H')
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
@@ -53,7 +53,7 @@ function Dashboard() {
     try {
       await portfolioAPI.sync()
       await fetchPortfolioData()
-      showError('Portfolio synced successfully')
+      showSuccess('Portfolio synced successfully')
     } catch (error) {
       showError(error.response?.data?.message || 'Sync failed. Please try again.')
     } finally {

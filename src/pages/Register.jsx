@@ -10,7 +10,7 @@ function Register() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-  const { showError } = useError()
+  const { showError, showSuccess } = useError()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -18,7 +18,7 @@ function Register() {
     
     try {
       await authAPI.register(name, email, password)
-      showError('Registration successful! Please log in.')
+      showSuccess('Registration successful! Please log in.')
       navigate('/login')
     } catch (error) {
       showError(error.response?.data?.message || 'Registration failed. Please try again.')
