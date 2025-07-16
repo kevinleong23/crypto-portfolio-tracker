@@ -54,6 +54,54 @@ router.get('/recent', authMiddleware, async (req, res) => {
   }
 })
 
+// Get recent transactions for specific wallet
+router.get('/recent/:integrationId', authMiddleware, async (req, res) => {
+  try {
+    const { integrationId } = req.params
+    const user = await User.findById(req.user._id)
+    
+    // Verify the integration belongs to the user and is a wallet
+    const integration = user.integrations.find(
+      int => int._id.toString() === integrationId && int.type === 'wallet' && int.isActive
+    )
+    
+    if (!integration) {
+      return res.status(404).json({ message: 'Wallet not found or inactive' })
+    }
+    
+    // Get transactions for this specific wallet
+    const transactions = await Transaction.find({ 
+      userId: req.user._id,
+      integrationId: integration._id 
+    })
+      .sort({ timestamp: -1 })
+      .limit(10)
+    
+    // Generate display name for this integration
+    const sameTypeIntegrations = user.integrations.filter(i => i.name === integration.name && i.type === integration.type);
+    const sameTypeIndex = sameTypeIntegrations.findIndex(i => i._id.toString() === integrationId);
+    const count = sameTypeIndex + 1;
+    const displayName = integration.displayName || 
+      `${integration.name} ${integration.type === 'wallet' ? 'Wallet' : 'Exchange'} ${count}`
+    
+    // Format transactions
+    const formattedTransactions = transactions.map(tx => ({
+      id: tx._id,
+      date: tx.timestamp,
+      type: tx.type,
+      asset: `${tx.asset.amount} ${tx.asset.symbol}`,
+      portfolio: displayName,
+      status: tx.status,
+      txHash: tx.txHash
+    }))
+    
+    res.json(formattedTransactions)
+  } catch (error) {
+    console.error('Get wallet transactions error:', error)
+    res.status(500).json({ message: 'Failed to fetch wallet transactions' })
+  }
+})
+
 // Get transactions by asset
 router.get('/asset/:symbol', authMiddleware, async (req, res) => {
   try {
