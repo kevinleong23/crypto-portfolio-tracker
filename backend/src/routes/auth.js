@@ -1,7 +1,9 @@
 const express = require('express')
 const jwt = require('jsonwebtoken')
+const crypto = require('crypto');
 const User = require('../models/User')
 const Portfolio = require('../models/Portfolio')
+const { sendPasswordResetEmail } = require('../services/emailService');
 
 const router = express.Router()
 
@@ -82,6 +84,78 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Login failed' })
   }
 })
+
+// Forgot Password
+router.post('/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'Email not found' });
+        }
+
+        const otp = crypto.randomInt(100000, 999999).toString();
+        user.resetPasswordOtp = otp;
+        user.resetPasswordExpires = Date.now() + 600000; // 10 minutes
+
+        await user.save();
+        await sendPasswordResetEmail(user.email, otp);
+
+        res.json({ message: 'OTP sent to your email.' });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ message: 'Error sending password reset email.' });
+    }
+});
+
+// Verify OTP
+router.post('/verify-otp', async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const user = await User.findOne({
+            email,
+            resetPasswordOtp: otp,
+            resetPasswordExpires: { $gt: Date.now() },
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid or expired OTP.' });
+        }
+
+        res.json({ message: 'OTP verified successfully.' });
+    } catch (error) {
+        console.error('Verify OTP error:', error);
+        res.status(500).json({ message: 'Error verifying OTP.' });
+    }
+});
+
+
+// Reset Password
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { email, otp, password } = req.body;
+        const user = await User.findOne({
+            email,
+            resetPasswordOtp: otp,
+            resetPasswordExpires: { $gt: Date.now() },
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid or expired OTP.' });
+        }
+
+        user.password = password;
+        user.resetPasswordOtp = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        res.json({ message: 'Password has been reset successfully.' });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ message: 'Error resetting password.' });
+    }
+});
+
 
 // Google OAuth (placeholder - implement with passport.js)
 router.post('/google', async (req, res) => {
