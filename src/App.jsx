@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard'
 import Integration from './pages/Integration'
 import AssetDetails from './pages/AssetDetails'
 import Settings from './pages/Settings'
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import ErrorBanner from './components/common/ErrorBanner'
 import SuccessBanner from './components/common/SuccessBanner' // Import SuccessBanner
 import Navigation from './components/common/Navigation'
@@ -68,6 +70,8 @@ function App() {
           <Routes>
             <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
             <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/dashboard" />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
             <Route path="/integration" element={isAuthenticated ? <Integration /> : <Navigate to="/login" />} />
             <Route path="/assets" element={isAuthenticated ? <AssetDetails /> : <Navigate to="/login" />} />

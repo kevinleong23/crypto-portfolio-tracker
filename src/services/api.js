@@ -43,8 +43,11 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   register: (username, email, password) => api.post('/auth/register', { username, email, password }),
-  googleAuth: (googleData) => api.post('/auth/google', googleData)
-}
+  googleAuth: (googleData) => api.post('/auth/google', googleData),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  verifyOtp: (email, otp) => api.post('/auth/verify-otp', { email, otp }),
+  resetPassword: (email, otp, password) => api.post('/auth/reset-password', { email, otp, password }),
+};
 
 // User API
 export const userAPI = {
