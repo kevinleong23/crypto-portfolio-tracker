@@ -99,7 +99,7 @@ function Settings() {
   };
 
   const handleDeleteAccount = async () => {
-    const isGoogleAccount = !user.password;
+    const isGoogleAccount = !user.hasPassword;
 
     if (isGoogleAccount) {
       if (!deleteOtp) {
@@ -296,7 +296,7 @@ function Settings() {
             <h2 className="text-xl font-semibold mb-4">Confirm Account Deletion</h2>
             <p className="mb-4 text-dark-muted">Are you sure you want to delete your account? This action is permanent and cannot be undone.</p>
             <div className="space-y-2">
-              {!user.password ? (
+              {!user.hasPassword ? (
                 // OTP flow for Google accounts
                 <div>
                   {!otpSent ? (

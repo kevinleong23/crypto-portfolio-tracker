@@ -44,8 +44,24 @@ const upload = multer({
 // Get user profile
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password -integrations.apiKey -integrations.apiSecret')
-    res.json(user)
+    const user = await User.findById(req.user._id).select('+password')
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    const userProfile = user.toObject();
+    userProfile.hasPassword = !!user.password;
+    delete userProfile.password;
+    
+    // Manually remove sensitive integration data
+    if (userProfile.integrations) {
+      userProfile.integrations.forEach(integration => {
+        delete integration.apiKey;
+        delete integration.apiSecret;
+      });
+    }
+    
+    res.json(userProfile);
   } catch (error) {
     console.error('Get profile error:', error)
     res.status(500).json({ message: 'Failed to fetch profile' })

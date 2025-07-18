@@ -24,7 +24,7 @@ function GoogleLogin({ onSuccess, text = "Continue with Google" }) {
         localStorage.setItem('authToken', response.data.token)
         window.location.href = '/dashboard'
       } catch (error) {
-        showError('Google login failed. Please try again.')
+        showError(error.response?.data?.message || 'Google login failed. Please try again.')
       }
     },
     onError: () => {
