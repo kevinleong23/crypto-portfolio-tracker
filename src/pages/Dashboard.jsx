@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import PortfolioChart from '../components/charts/PortfolioChart'
 import AssetTable from '../components/tables/AssetTable'
 import { portfolioAPI } from '../services/api'
-import { useError } from '../App'
+import { useApp } from '../App'
 
 function Dashboard() {
   const navigate = useNavigate()
-  const { showError, showSuccess } = useError()
+  const { showError, showSuccess } = useApp()
   const [timeframe, setTimeframe] = useState('24H')
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)

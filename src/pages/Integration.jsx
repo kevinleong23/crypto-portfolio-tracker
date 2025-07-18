@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { integrationAPI } from '../services/api'
-import { useError } from '../App'
+import { useApp } from '../App'
 
 function Integration() {
   const navigate = useNavigate()
-  const { showError, showSuccess } = useError()
+  const { showError, showSuccess } = useApp()
   const [showApiForm, setShowApiForm] = useState(false)
   const [selectedExchange, setSelectedExchange] = useState('')
   const [apiKey, setApiKey] = useState('')

@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { userAPI } from '../services/api'
-import { useError } from '../App'
+import { useApp } from '../App'
 
 function Settings() {
   const navigate = useNavigate()
-  const { showError, showSuccess } = useError()
-  const [user, setUser] = useState({ username: '', email: '', profilePictureUrl: '' })
+  const { showError, showSuccess, user, fetchUser } = useApp()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -21,20 +20,14 @@ function Settings() {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await userAPI.getProfile()
-        setUser(response.data)
-        setUsername(response.data.username)
-        setTwoFA(response.data.twoFactorEnabled)
-      } catch (error) {
-        showError('Failed to load profile data')
-      } finally {
-        setLoading(false)
-      }
+    if (user) {
+      setUsername(user.username)
+      setTwoFA(user.twoFactorEnabled)
+      setLoading(false)
+    } else {
+      fetchUser()
     }
-    fetchProfile()
-  }, [showError])
+  }, [user, fetchUser])
 
   const handleProfilePictureUpload = async (event) => {
     const file = event.target.files[0]
@@ -44,8 +37,8 @@ function Settings() {
     formData.append('avatar', file)
 
     try {
-      const response = await userAPI.uploadProfilePicture(formData)
-      setUser(prevUser => ({ ...prevUser, profilePictureUrl: response.data.user.profilePictureUrl }))
+      await userAPI.uploadProfilePicture(formData)
+      fetchUser()
       showSuccess('Profile picture updated successfully')
     } catch (error) {
       showError(error.response?.data?.message || 'Failed to upload profile picture')
@@ -55,6 +48,7 @@ function Settings() {
   const handleSaveProfile = async () => {
     try {
       await userAPI.updateProfile({ username })
+      fetchUser()
       showSuccess('Profile updated successfully')
     } catch (error) {
       showError(error.response?.data?.message || 'Failed to update profile')

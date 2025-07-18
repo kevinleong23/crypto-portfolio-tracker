@@ -5,11 +5,11 @@ import PieChart from '../components/charts/PieChart'
 import StackedBarChart from '../components/charts/StackedBarChart'
 import TransactionTable from '../components/tables/TransactionTable'
 import { portfolioAPI, transactionAPI, integrationAPI } from '../services/api'
-import { useError } from '../App'
+import { useApp } from '../App'
 
 function AssetDetails() {
   const navigate = useNavigate()
-  const { showError } = useError()
+  const { showError } = useApp()
   const [loading, setLoading] = useState(true)
   const [assets, setAssets] = useState([])
   const [transactions, setTransactions] = useState([])

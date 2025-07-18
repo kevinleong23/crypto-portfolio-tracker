@@ -1,9 +1,9 @@
 import { useGoogleLogin } from '@react-oauth/google'
 import { authAPI } from '../services/api'
-import { useError } from '../App'
+import { useApp } from '../App'
 
 function GoogleLogin({ onSuccess, text = "Continue with Google" }) {
-  const { showError } = useError()
+  const { showError } = useApp()
 
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {

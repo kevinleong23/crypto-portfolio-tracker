@@ -12,14 +12,15 @@ import ResetPassword from './pages/ResetPassword';
 import ErrorBanner from './components/common/ErrorBanner'
 import SuccessBanner from './components/common/SuccessBanner' // Import SuccessBanner
 import Navigation from './components/common/Navigation'
+import { userAPI } from './services/api'
 
-// Error Context
-export const ErrorContext = createContext()
+// App Context
+export const AppContext = createContext()
 
-export const useError = () => {
-  const context = useContext(ErrorContext)
+export const useApp = () => {
+  const context = useContext(AppContext)
   if (!context) {
-    throw new Error('useError must be used within ErrorProvider')
+    throw new Error('useApp must be used within AppProvider')
   }
   return context
 }
@@ -28,11 +29,24 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null) // State for success messages
+  const [user, setUser] = useState(null);
   
   useEffect(() => {
     const token = localStorage.getItem('authToken')
     setIsAuthenticated(!!token)
+    if (token) {
+      fetchUser();
+    }
   }, [])
+
+  const fetchUser = async () => {
+    try {
+      const response = await userAPI.getProfile();
+      setUser(response.data);
+    } catch (error) {
+      console.error("Failed to fetch user for navigation", error);
+    }
+  };
 
   const showError = (message) => {
     setError(message)
@@ -56,7 +70,7 @@ function App() {
 
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
-      <ErrorContext.Provider value={{ showError, showSuccess, clearError, clearSuccess }}>
+      <AppContext.Provider value={{ user, fetchUser, showError, showSuccess, clearError, clearSuccess }}>
         <Router>
           <ErrorBanner 
             error={error} 
@@ -79,7 +93,7 @@ function App() {
             <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
           </Routes>
         </Router>
-      </ErrorContext.Provider>
+      </AppContext.Provider>
     </GoogleOAuthProvider>
   )
 }

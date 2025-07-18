@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 
 function ErrorBanner({ error, onRetry, onDismiss, autoHide = 5000 }) {
-  const [isVisible, setIsVisible] = useState(true)
+  const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    if (error && autoHide) {
+    if (error) {
+      setIsVisible(true)
       const timer = setTimeout(() => {
         setIsVisible(false)
         if (onDismiss) onDismiss()

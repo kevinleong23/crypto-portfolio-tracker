@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
-import { useError } from '../App';
+import { useApp } from '../App';
 
 function ResetPassword() {
   const [otp, setOtp] = useState('');
@@ -11,7 +11,7 @@ function ResetPassword() {
   const [otpVerified, setOtpVerified] = useState(false);
   const navigate = useNavigate();
   const { state } = useLocation();
-  const { showError, showSuccess } = useError();
+  const { showError, showSuccess } = useApp();
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
