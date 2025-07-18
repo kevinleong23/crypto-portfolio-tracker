@@ -21,6 +21,12 @@ function Settings() {
   const fileInputRef = useRef(null)
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
+  // 2FA Modal State
+  const [show2FAModal, setShow2FAModal] = useState(false)
+  const [qrCode, setQrCode] = useState('')
+  const [twoFAToken, setTwoFAToken] = useState('')
+  const [twoFASecret, setTwoFASecret] = useState('')
+
   useEffect(() => {
     if (user) {
       setUsername(user.username)
@@ -79,14 +85,45 @@ function Settings() {
   }
 
   const handleToggle2FA = async () => {
-    try {
-      const response = await userAPI.toggle2FA(!twoFA)
-      setTwoFA(response.data.twoFactorEnabled)
-      showSuccess(`2FA ${response.data.twoFactorEnabled ? 'enabled' : 'disabled'}`)
-    } catch (error) {
-      showError('Failed to toggle 2FA')
+    if (twoFA) {
+      // Disable 2FA
+      try {
+        await userAPI.disable2FA();
+        showSuccess('2FA disabled successfully');
+        fetchUser(); // This will refetch the user and update the UI
+      } catch (error) {
+        showError('Failed to disable 2FA');
+      }
+    } else {
+      // Enable 2FA - open modal
+      try {
+        const response = await userAPI.generate2FA();
+        setQrCode(response.data.qrCode);
+        setTwoFASecret(response.data.secret);
+        setShow2FAModal(true);
+      } catch (error) {
+        showError('Failed to generate 2FA secret');
+      }
     }
-  }
+  };
+
+  const handleVerify2FA = async () => {
+    try {
+      const response = await userAPI.verify2FA(twoFAToken);
+      if (response.data.verified) {
+        setTwoFA(true);
+        setShow2FAModal(false);
+        setTwoFAToken('');
+        showSuccess('2FA enabled successfully');
+        fetchUser(); // Refetch user to update 2FA status
+      } else {
+        showError('Invalid token. Please try again.');
+      }
+    } catch (error) {
+      showError(error.response?.data?.message || 'Failed to verify 2FA token');
+    }
+  };
+
 
   const handleRequestDeleteOtp = async () => {
     try {
@@ -358,6 +395,51 @@ function Settings() {
                   Confirm
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 2FA Setup Modal */}
+      {show2FAModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-dark-card p-8 rounded-lg border border-dark-border w-full max-w-md text-center">
+            <h2 className="text-xl font-semibold mb-4">Set Up Two-Factor Authentication</h2>
+            <p className="text-dark-muted mb-4">
+              Scan the QR code with your authenticator app (e.g., Google Authenticator).
+            </p>
+            {qrCode ? (
+              <img src={qrCode} alt="2FA QR Code" className="mx-auto my-4 p-2 bg-white rounded" />
+            ) : (
+              <div className="w-48 h-48 bg-gray-700 animate-pulse mx-auto my-4" />
+            )}
+            <p className="text-dark-muted mb-4">
+              Or manually enter this secret key:
+              <br />
+              <code className="bg-dark-bg p-2 my-2 rounded text-sm block break-all">
+                {twoFASecret}
+              </code>
+            </p>
+            <input
+              type="text"
+              placeholder="Enter verification code"
+              value={twoFAToken}
+              onChange={(e) => setTwoFAToken(e.target.value)}
+              className="w-full px-4 py-2 bg-dark-bg border border-dark-border rounded focus:outline-none focus:border-blue-500"
+              required
+            />
+            <div className="flex justify-end gap-4 pt-4">
+              <button
+                onClick={() => setShow2FAModal(false)}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleVerify2FA}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
+              >
+                Verify & Enable
+              </button>
             </div>
           </div>
         </div>

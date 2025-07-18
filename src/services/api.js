@@ -45,6 +45,7 @@ api.interceptors.response.use(
 // Auth API
 export const authAPI = {
   login: (email, password) => api.post('/auth/login', { email, password }),
+  login2FA: (userId, token) => api.post('/auth/login/2fa', { userId, token }),
   register: (username, email, password) => api.post('/auth/register', { username, email, password }),
   googleAuth: (googleData) => api.post('/auth/google', googleData),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
@@ -63,7 +64,9 @@ export const userAPI = {
   }),
   changePassword: (currentPassword, newPassword) =>
     api.post('/user/change-password', { currentPassword, newPassword }),
-  toggle2FA: (enable) => api.post('/user/2fa/toggle', { enable }),
+  generate2FA: () => api.post('/user/2fa/generate'),
+  verify2FA: (token) => api.post('/user/2fa/verify', { token }),
+  disable2FA: () => api.post('/user/2fa/disable'),
   deleteAccount: (password, otp) => api.delete('/user/profile', { data: { password, otp } }),
   requestDeleteOtp: () => api.post('/user/request-delete-otp'),
 }

@@ -3,10 +3,12 @@ const bcrypt = require('bcryptjs')
 const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
-const crypto = require('crypto');
+const crypto = require('crypto')
 const User = require('../models/User')
 const authMiddleware = require('../middleware/auth')
-const { sendDeleteAccountOtpEmail } = require('../services/emailService');
+const { sendDeleteAccountOtpEmail } = require('../services/emailService')
+const speakeasy = require('speakeasy')
+const QRCode = require('qrcode')
 
 const router = express.Router()
 
@@ -163,32 +165,67 @@ router.post('/change-password', authMiddleware, async (req, res) => {
   }
 });
 
-// Toggle 2FA
-router.post('/2fa/toggle', authMiddleware, async (req, res) => {
+// Generate 2FA secret and QR code
+router.post('/2fa/generate', authMiddleware, async (req, res) => {
   try {
-    const { enable } = req.body
-    
-    req.user.twoFactorEnabled = enable
-    
-    if (enable) {
-      // Generate 2FA secret (implement with speakeasy or similar)
-      // For now, just enable the flag
-      req.user.twoFactorSecret = 'temporary-secret'
-    } else {
-      req.user.twoFactorSecret = undefined
-    }
-    
-    await req.user.save()
-    
-    res.json({ 
-      message: `2FA ${enable ? 'enabled' : 'disabled'} successfully`,
-      twoFactorEnabled: req.user.twoFactorEnabled
-    })
+    const secret = speakeasy.generateSecret({
+      name: `CryptoTracker (${req.user.email})`,
+    });
+    req.user.twoFactorTempSecret = secret.base32;
+    await req.user.save();
+
+    QRCode.toDataURL(secret.otpauth_url, (err, data_url) => {
+      if (err) {
+        throw new Error('Could not generate QR code');
+      }
+      res.json({ qrCode: data_url, secret: secret.base32 });
+    });
   } catch (error) {
-    console.error('Toggle 2FA error:', error)
-    res.status(500).json({ message: 'Failed to toggle 2FA' })
+    console.error('2FA generate error:', error);
+    res.status(500).json({ message: 'Failed to generate 2FA secret' });
   }
-})
+});
+
+// Verify 2FA token and enable 2FA
+router.post('/2fa/verify', authMiddleware, async (req, res) => {
+  const { token } = req.body;
+  try {
+    const user = await User.findById(req.user._id);
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorTempSecret,
+      encoding: 'base32',
+      token,
+    });
+
+    if (verified) {
+      user.twoFactorSecret = user.twoFactorTempSecret;
+      user.twoFactorTempSecret = undefined;
+      user.twoFactorEnabled = true;
+      await user.save();
+      res.json({ verified: true });
+    } else {
+      res.status(400).json({ verified: false, message: 'Invalid token' });
+    }
+  } catch (error) {
+    console.error('2FA verify error:', error);
+    res.status(500).json({ message: 'Failed to verify 2FA token' });
+  }
+});
+
+// Disable 2FA
+router.post('/2fa/disable', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = undefined;
+    user.twoFactorTempSecret = undefined;
+    await user.save();
+    res.json({ message: '2FA disabled successfully' });
+  } catch (error) {
+    console.error('2FA disable error:', error);
+    res.status(500).json({ message: 'Failed to disable 2FA' });
+  }
+});
 
 // Request OTP for account deletion
 router.post('/request-delete-otp', authMiddleware, async (req, res) => {

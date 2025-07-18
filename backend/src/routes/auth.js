@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const User = require('../models/User')
 const Portfolio = require('../models/Portfolio')
 const { sendPasswordResetEmail } = require('../services/emailService');
+const speakeasy = require('speakeasy'); // Add this line
 
 const router = express.Router()
 
@@ -54,17 +55,25 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body
-    
+
     // Find user
     const user = await User.findOne({ email })
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' })
     }
-    
+
     // Check password
     const isMatch = await user.comparePassword(password)
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' })
+    }
+
+    // If 2FA is enabled, prompt for token
+    if (user.twoFactorEnabled) {
+      return res.json({
+        twoFactorEnabled: true,
+        userId: user._id,
+      });
     }
     
     // Generate token
@@ -84,6 +93,42 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Login failed' })
   }
 })
+
+// Verify 2FA and Login
+router.post('/login/2fa', async (req, res) => {
+  const { userId, token } = req.body;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token,
+      window: 1,
+    });
+
+    if (verified) {
+      const jwtToken = generateToken(user._id);
+      res.json({
+        token: jwtToken,
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          twoFactorEnabled: user.twoFactorEnabled,
+        },
+      });
+    } else {
+      res.status(401).json({ message: 'Invalid 2FA token' });
+    }
+  } catch (error) {
+    console.error('2FA login error:', error);
+    res.status(500).json({ message: '2FA login failed' });
+  }
+});
 
 // Forgot Password
 router.post('/forgot-password', async (req, res) => {

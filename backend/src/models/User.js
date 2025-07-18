@@ -35,6 +35,9 @@ const userSchema = new mongoose.Schema({
   twoFactorSecret: {
     type: String
   },
+  twoFactorTempSecret: {
+    type: String
+  },
   integrations: [{
     type: {
       type: String,
