@@ -56,6 +56,10 @@ function Settings() {
   }
 
   const handleChangePassword = async () => {
+    if (!currentPassword) {
+      showError('Please enter your current password');
+      return;
+    }
     if (newPassword !== confirmPassword) {
       showError('New passwords do not match')
       return

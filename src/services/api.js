@@ -30,8 +30,11 @@ api.interceptors.response.use(
   (error) => {
     const isDeleteProfileRequest =
       error.config.method === 'delete' && error.config.url.endsWith('/user/profile');
+    
+    const isChangePasswordRequest =
+      error.config.method === 'post' && error.config.url.endsWith('/user/change-password');
 
-    if (error.response?.status === 401 && !isDeleteProfileRequest) {
+    if (error.response?.status === 401 && !isDeleteProfileRequest && !isChangePasswordRequest) {
       localStorage.removeItem('authToken')
       window.location.href = '/login'
     }

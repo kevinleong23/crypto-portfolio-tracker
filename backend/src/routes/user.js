@@ -113,32 +113,37 @@ router.patch('/profile', authMiddleware, async (req, res) => {
 // Change password
 router.post('/change-password', authMiddleware, async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body
-    
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate current password
+    if (!currentPassword) {
+      return res.status(400).json({ message: 'Please enter your current password' });
+    }
+
     // Validate new password
     if (!newPassword || newPassword.length < 6) {
-      return res.status(400).json({ message: 'New password must be at least 6 characters' })
+      return res.status(400).json({ message: 'New password must be at least 6 characters' });
     }
-    
+
     // Get user with password
-    const user = await User.findById(req.user._id)
-    
+    const user = await User.findById(req.user._id);
+
     // Verify current password
-    const isMatch = await user.comparePassword(currentPassword)
+    const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Current password is incorrect' })
+      return res.status(400).json({ message: 'Current password is incorrect' });
     }
-    
+
     // Update password
-    user.password = newPassword
-    await user.save()
-    
-    res.json({ message: 'Password changed successfully' })
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: 'Password changed successfully' });
   } catch (error) {
-    console.error('Change password error:', error)
-    res.status(500).json({ message: 'Failed to change password' })
+    console.error('Change password error:', error);
+    res.status(500).json({ message: 'Failed to change password' });
   }
-})
+});
 
 // Toggle 2FA
 router.post('/2fa/toggle', authMiddleware, async (req, res) => {
