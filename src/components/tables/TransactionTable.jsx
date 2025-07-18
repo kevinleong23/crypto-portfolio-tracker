@@ -8,6 +8,14 @@ function TransactionTable({ transactions }) {
     })
   }
 
+  const formatAmount = (num) => {
+    if (num === 0) return '0';
+    // Use a higher precision for very small numbers to avoid scientific notation
+    if (num > 0 && num < 0.001) return parseFloat(num.toFixed(8)).toString();
+    if (num < 1) return parseFloat(num.toFixed(4)).toString();
+    return num.toLocaleString('en-US', { maximumFractionDigits: 3 });
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -35,7 +43,9 @@ function TransactionTable({ transactions }) {
                 </span>
               </td>
               <td className="py-3 px-4 text-sm font-medium">
-                {tx.asset}
+                {tx.asset && typeof tx.asset === 'object'
+                  ? `${formatAmount(tx.asset.amount)} ${tx.asset.symbol}`
+                  : tx.asset}
               </td>
               <td className="py-3 px-4 text-sm text-dark-muted">{tx.portfolio}</td>
             </tr>

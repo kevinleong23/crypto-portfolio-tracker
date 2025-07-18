@@ -1,4 +1,12 @@
 function AssetTable({ assets, onAssetClick }) {
+  const formatNumber = (num) => {
+    if (num === 0) return '0';
+    // Use a higher precision for very small numbers to avoid scientific notation
+    if (num > 0 && num < 0.001) return parseFloat(num.toFixed(8)).toString();
+    if (num < 1) return parseFloat(num.toFixed(4)).toString();
+    return num.toLocaleString('en-US', { maximumFractionDigits: 3 });
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -14,8 +22,8 @@ function AssetTable({ assets, onAssetClick }) {
         </thead>
         <tbody>
           {assets.map((asset) => (
-            <tr
-              key={asset.symbol}
+            <tr 
+              key={asset.symbol} 
               className={`border-b border-dark-border transition ${onAssetClick ? 'hover:bg-dark-border/20 cursor-pointer' : ''}`}
               onClick={() => onAssetClick && onAssetClick(asset)}
             >
@@ -25,28 +33,12 @@ function AssetTable({ assets, onAssetClick }) {
                   <div className="text-sm text-dark-muted">{asset.symbol}</div>
                 </div>
               </td>
-              <td className="text-right py-3 px-4">
-                {(() => {
-                  const amount = asset.amount || 0
-                  if (amount === 0) return '0'
-                  if (amount < 0.00001) return amount.toExponential(2)
-                  if (amount < 0.01) return amount.toFixed(6)
-                  if (amount < 1) return amount.toFixed(4)
-                  return amount.toLocaleString()
-                })()}
-              </td>
+              <td className="text-right py-3 px-4">{formatNumber(asset.amount)}</td>
               <td className={`text-right py-3 px-4 ${asset.change24h < 0 ? 'text-red-500' : 'text-green-500'}`}>
                 {asset.change24h > 0 ? '+' : ''}{asset.change24h.toFixed(2)}%
               </td>
               <td className="text-right py-3 px-4">
-                ${(() => {
-                  const price = asset.price || asset.currentPrice || 0
-                  if (price === 0) return '0'
-                  if (price < 0.00001) return price.toExponential(2)
-                  if (price < 0.01) return price.toFixed(6)
-                  if (price < 1) return price.toFixed(4)
-                  return price.toLocaleString()
-                })()}
+                ${formatNumber(asset.price || asset.currentPrice || 0)}
               </td>
               <td className="text-right py-3 px-4">${asset.total.toFixed(2)}</td>
               <td className={`text-right py-3 px-4 ${asset.pnl24h < 0 ? 'text-red-500' : 'text-green-500'}`}>
@@ -57,7 +49,7 @@ function AssetTable({ assets, onAssetClick }) {
         </tbody>
       </table>
     </div>
-  )
+  );
 }
 
 export default AssetTable

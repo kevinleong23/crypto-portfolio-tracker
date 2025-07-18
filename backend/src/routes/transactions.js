@@ -41,7 +41,10 @@ router.get('/recent', authMiddleware, async (req, res) => {
       id: tx._id,
       date: tx.timestamp,
       type: tx.type,
-      asset: `${tx.asset.amount} ${tx.asset.symbol}`,
+      asset: {
+        amount: tx.asset.amount,
+        symbol: tx.asset.symbol
+      },
       portfolio: displayNameMap[tx.integrationId.toString()] || tx.source,
       status: tx.status,
       txHash: tx.txHash
@@ -89,7 +92,10 @@ router.get('/recent/:integrationId', authMiddleware, async (req, res) => {
       id: tx._id,
       date: tx.timestamp,
       type: tx.type,
-      asset: `${tx.asset.amount} ${tx.asset.symbol}`,
+      asset: {
+        amount: tx.asset.amount,
+        symbol: tx.asset.symbol
+      },
       portfolio: displayName,
       status: tx.status,
       txHash: tx.txHash

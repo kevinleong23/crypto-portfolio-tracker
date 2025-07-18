@@ -4,7 +4,7 @@ const Transaction = require('../models/Transaction')
 const { decrypt } = require('../utils/encryption')
 const { getExchangeBalances } = require('./exchangeService')
 const { getWalletBalances } = require('./walletService')
-const { CoinGeckoService, symbolToCoinGeckoId } = require('./coinGeckoService')
+const { CoinGeckoService, symbolToCoinGeckoId, symbolToName } = require('./coinGeckoService')
 const { syncAllTransactions } = require('./transactionSyncService')
 
 const coinGecko = new CoinGeckoService(process.env.COINGECKO_API_KEY)
@@ -118,7 +118,7 @@ async function syncPortfolio(userId) {
       // Add to portfolio
       portfolio.assets.push({
         symbol,
-        name: symbol, // You might want to maintain a symbol->name mapping
+        name: symbolToName[symbol] || symbol, // You might want to maintain a symbol->name mapping
         amount: data.amount,
         source: data.sources[0].name, // Primary source
         sourceType: data.sources[0].type,
