@@ -19,4 +19,15 @@ const sendPasswordResetEmail = async (to, otp) => {
   await transporter.sendMail(mailOptions);
 };
 
-module.exports = { sendPasswordResetEmail };
+const sendDeleteAccountOtpEmail = async (to, otp) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject: 'Account Deletion OTP',
+    text: `Your OTP for account deletion is: ${otp}. It will expire in 10 minutes.`,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+module.exports = { sendPasswordResetEmail, sendDeleteAccountOtpEmail };

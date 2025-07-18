@@ -3,8 +3,10 @@ const bcrypt = require('bcryptjs')
 const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
+const crypto = require('crypto');
 const User = require('../models/User')
 const authMiddleware = require('../middleware/auth')
+const { sendDeleteAccountOtpEmail } = require('../services/emailService');
 
 const router = express.Router()
 
@@ -172,28 +174,62 @@ router.post('/2fa/toggle', authMiddleware, async (req, res) => {
   }
 })
 
+// Request OTP for account deletion
+router.post('/request-delete-otp', authMiddleware, async (req, res) => {
+  try {
+    const user = req.user;
+
+    // Ensure it's a Google-authenticated account
+    if (user.password) {
+      return res.status(400).json({ message: 'This route is only for Google-authenticated accounts.' });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    user.deleteAccountOtp = otp;
+    user.deleteAccountExpires = Date.now() + 600000; // 10 minutes
+
+    await user.save();
+    await sendDeleteAccountOtpEmail(user.email, otp);
+
+    res.json({ message: 'OTP sent to your email.' });
+  } catch (error) {
+    console.error('Request delete OTP error:', error);
+    res.status(500).json({ message: 'Error sending OTP.' });
+  }
+});
+
 // Delete account
 router.delete('/profile', authMiddleware, async (req, res) => {
   try {
-    const { password } = req.body
+    const { password, otp } = req.body;
+    const user = await User.findById(req.user._id);
 
-    // Get user with password
-    const user = await User.findById(req.user._id)
-
-    // Verify password
-    const isMatch = await user.comparePassword(password)
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Incorrect password' })
+    // Handle Google-authenticated user deletion with OTP
+    if (!user.password) {
+      if (!otp || user.deleteAccountOtp !== otp || user.deleteAccountExpires < Date.now()) {
+        return res.status(401).json({ message: 'Invalid or expired OTP.' });
+      }
+      user.deleteAccountOtp = undefined;
+      user.deleteAccountExpires = undefined;
+    } else {
+      // Handle password-based user deletion
+      if (!password) {
+        return res.status(401).json({ message: 'Password is required to delete your account.'})
+      }
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Incorrect password' });
+      }
     }
 
     // Remove user and associated data (will trigger pre-remove hook)
-    await user.deleteOne()
+    await user.deleteOne();
 
-    res.json({ message: 'Account deleted successfully' })
+    res.json({ message: 'Account deleted successfully' });
   } catch (error) {
-    console.error('Delete account error:', error)
-    res.status(500).json({ message: 'Failed to delete account' })
+    console.error('Delete account error:', error);
+    res.status(500).json({ message: 'Failed to delete account' });
   }
-})
+});
 
-module.exports = router
+module.exports = router;

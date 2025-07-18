@@ -64,7 +64,8 @@ export const userAPI = {
   changePassword: (currentPassword, newPassword) =>
     api.post('/user/change-password', { currentPassword, newPassword }),
   toggle2FA: (enable) => api.post('/user/2fa/toggle', { enable }),
-  deleteAccount: (password) => api.delete('/user/profile', { data: { password } }),
+  deleteAccount: (password, otp) => api.delete('/user/profile', { data: { password, otp } }),
+  requestDeleteOtp: () => api.post('/user/request-delete-otp'),
 }
 
 // Portfolio API

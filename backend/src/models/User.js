@@ -75,6 +75,12 @@ const userSchema = new mongoose.Schema({
   resetPasswordExpires: {
     type: Date,
   },
+  deleteAccountOtp: {
+    type: String,
+  },
+  deleteAccountExpires: {
+      type: Date,
+  },
   createdAt: {
     type: Date,
     default: Date.now

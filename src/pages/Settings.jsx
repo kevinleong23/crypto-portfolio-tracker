@@ -13,7 +13,9 @@ function Settings() {
   const [showPasswordChange, setShowPasswordChange] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deletePassword, setDeletePassword] = useState('')
-  const [deleteError, setDeleteError] = useState('') // New state for modal error
+  const [deleteOtp, setDeleteOtp] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const [loading, setLoading] = useState(true)
   const [username, setUsername] = useState('')
   const fileInputRef = useRef(null)
@@ -86,21 +88,40 @@ function Settings() {
     }
   }
 
-  const handleDeleteAccount = async () => {
-    if (!deletePassword) {
-      setDeleteError('Please enter your password to confirm.')
-      return
-    }
+  const handleRequestDeleteOtp = async () => {
     try {
-      setDeleteError('')
-      await userAPI.deleteAccount(deletePassword)
-      showSuccess('Account deleted successfully.')
-      handleLogout()
+        await userAPI.requestDeleteOtp();
+        showSuccess('An OTP has been sent to your email.');
+        setOtpSent(true);
     } catch (error) {
-      // Set the specific error for the modal
-      setDeleteError(error.response?.data?.message || 'Failed to delete account. Please try again.')
+        setDeleteError(error.response?.data?.message || 'Failed to send OTP.');
     }
-  }
+  };
+
+  const handleDeleteAccount = async () => {
+    const isGoogleAccount = !user.password;
+
+    if (isGoogleAccount) {
+      if (!deleteOtp) {
+        setDeleteError('Please enter the OTP sent to your email.');
+        return;
+      }
+    } else {
+      if (!deletePassword) {
+        setDeleteError('Please enter your password to confirm.');
+        return;
+      }
+    }
+
+    try {
+      setDeleteError('');
+      await userAPI.deleteAccount(deletePassword, deleteOtp);
+      showSuccess('Account deleted successfully.');
+      handleLogout();
+    } catch (error) {
+      setDeleteError(error.response?.data?.message || 'Failed to delete account. Please try again.');
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('authToken')
@@ -117,6 +138,7 @@ function Settings() {
 
   return (
     <div className="min-h-screen bg-dark-bg p-6">
+      {/* ... (rest of the JSX is mostly the same, only the modal is updated) ... */}
       <div className="max-w-3xl mx-auto">
         <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
@@ -268,37 +290,62 @@ function Settings() {
           </div>
         </div>
       </div>
-
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-dark-card p-8 rounded-lg border border-dark-border w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">Confirm Account Deletion</h2>
             <p className="mb-4 text-dark-muted">Are you sure you want to delete your account? This action is permanent and cannot be undone.</p>
             <div className="space-y-2">
-              <input
-                type="password"
-                placeholder="Enter your password to confirm"
-                value={deletePassword}
-                onChange={(e) => {
-                  setDeletePassword(e.target.value)
-                  setDeleteError('') // Clear error on new input
-                }}
-                className={`w-full px-4 py-2 bg-dark-bg border rounded focus:outline-none ${
-                  deleteError
-                    ? 'border-red-500 focus:border-red-500'
-                    : 'border-dark-border focus:border-blue-500'
-                }`}
-                autoFocus
-              />
+              {!user.password ? (
+                // OTP flow for Google accounts
+                <div>
+                  {!otpSent ? (
+                    <button onClick={handleRequestDeleteOtp} className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition">
+                      Send OTP to {user.email}
+                    </button>
+                  ) : (
+                    <input
+                      type="text"
+                      placeholder="Enter OTP"
+                      value={deleteOtp}
+                      onChange={(e) => {
+                        setDeleteOtp(e.target.value);
+                        setDeleteError('');
+                      }}
+                      className={`w-full px-4 py-2 bg-dark-bg border rounded focus:outline-none ${
+                        deleteError ? 'border-red-500 focus:border-red-500' : 'border-dark-border focus:border-blue-500'
+                      }`}
+                      autoFocus
+                    />
+                  )}
+                </div>
+              ) : (
+                // Password flow for regular accounts
+                <input
+                  type="password"
+                  placeholder="Enter your password to confirm"
+                  value={deletePassword}
+                  onChange={(e) => {
+                    setDeletePassword(e.target.value);
+                    setDeleteError('');
+                  }}
+                  className={`w-full px-4 py-2 bg-dark-bg border rounded focus:outline-none ${
+                    deleteError ? 'border-red-500 focus:border-red-500' : 'border-dark-border focus:border-blue-500'
+                  }`}
+                  autoFocus
+                />
+              )}
               {deleteError && (
                 <p className="text-red-500 text-sm">{deleteError}</p>
               )}
               <div className="flex justify-end gap-4 pt-4">
                 <button
                   onClick={() => {
-                    setShowDeleteModal(false)
-                    setDeletePassword('')
-                    setDeleteError('')
+                    setShowDeleteModal(false);
+                    setDeletePassword('');
+                    setDeleteOtp('');
+                    setOtpSent(false);
+                    setDeleteError('');
                   }}
                   className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition"
                 >
@@ -319,4 +366,4 @@ function Settings() {
   )
 }
 
-export default Settings
+export default Settings;
