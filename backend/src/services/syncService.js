@@ -190,4 +190,4 @@ async function autoSyncAllPortfolios() {
 module.exports = {
   syncPortfolio,
   autoSyncAllPortfolios
-}
+} 
