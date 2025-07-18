@@ -153,7 +153,6 @@ function Dashboard() {
                 total: asset.totalValue || asset.total || 0,
                 pnl24h: asset.pnl24h || 0
               }))} 
-              onAssetClick={() => navigate('/assets')} 
             />
           )}
         </div>

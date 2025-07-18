@@ -14,9 +14,9 @@ function AssetTable({ assets, onAssetClick }) {
         </thead>
         <tbody>
           {assets.map((asset) => (
-            <tr 
-              key={asset.symbol} 
-              className="border-b border-dark-border hover:bg-dark-border/20 cursor-pointer transition"
+            <tr
+              key={asset.symbol}
+              className={`border-b border-dark-border transition ${onAssetClick ? 'hover:bg-dark-border/20 cursor-pointer' : ''}`}
               onClick={() => onAssetClick && onAssetClick(asset)}
             >
               <td className="py-3 px-4">
@@ -25,7 +25,16 @@ function AssetTable({ assets, onAssetClick }) {
                   <div className="text-sm text-dark-muted">{asset.symbol}</div>
                 </div>
               </td>
-              <td className="text-right py-3 px-4">{asset.amount}</td>
+              <td className="text-right py-3 px-4">
+                {(() => {
+                  const amount = asset.amount || 0
+                  if (amount === 0) return '0'
+                  if (amount < 0.00001) return amount.toExponential(2)
+                  if (amount < 0.01) return amount.toFixed(6)
+                  if (amount < 1) return amount.toFixed(4)
+                  return amount.toLocaleString()
+                })()}
+              </td>
               <td className={`text-right py-3 px-4 ${asset.change24h < 0 ? 'text-red-500' : 'text-green-500'}`}>
                 {asset.change24h > 0 ? '+' : ''}{asset.change24h.toFixed(2)}%
               </td>
