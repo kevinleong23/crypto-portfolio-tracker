@@ -4,79 +4,80 @@ A web application for tracking cryptocurrency portfolios across multiple exchang
 
 ## Features
 
-- 📊 Real-time portfolio tracking
-- 🔗 Exchange integration (MEXC, Binance)
-- 👛 Wallet integration (MetaMask, Phantom)
-- 📈 Performance charts and analytics
-- 🔒 Secure API key encryption
-- 🌙 Dark mode UI
-- 📱 Desktop-focused design
+  - 📊 **Real-time Portfolio Tracking**: Monitor the total value of your crypto assets, along with 24-hour changes.
+  - 🔗 **Exchange & Wallet Integration**: Connect to popular exchanges like MEXC and Binance, and wallets like MetaMask and Phantom.
+  - 📈 **Performance Analytics**: Visualize your portfolio's performance over various timeframes with interactive charts.
+  - 🔒 **Secure**: API keys are encrypted using AES-256 to protect your sensitive information.
+  - 🔑 **Authentication**: Secure user authentication with JWT, including support for two-factor authentication (2FA) and Google OAuth.
+  - 🖼️ **Profile Customization**: Users can update their username and profile picture.
+  - 🌙 **Dark Mode UI**: A sleek and modern dark mode interface.
 
 ## Tech Stack
 
 **Frontend:**
-- React + Vite
-- Tailwind CSS
-- Chart.js
-- Axios
+
+  - [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)
+  - [Tailwind CSS](https://tailwindcss.com/)
+  - [Chart.js](https://www.chartjs.org/) for charting
+  - [Axios](https://axios-http.com/) for API requests
 
 **Backend:**
-- Node.js + Express
-- MongoDB Atlas
-- JWT Authentication
-- AES-256 Encryption
 
-**Hosting:**
-- Firebase
+  - [Node.js](https://nodejs.org/) + [Express](https://expressjs.com/)
+  - [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) with [Mongoose](https://mongoosejs.com/)
+  - [JSON Web Tokens (JWT)](https://jwt.io/) for Authentication
+  - AES-256 Encryption for API keys
 
-## Setup Instructions
+## Getting Started
 
 ### Prerequisites
-- Node.js (v14+)
-- MongoDB Atlas account
-- Exchange API keys (read-only)
+
+  - Node.js (v14+)
+  - MongoDB Atlas account
+  - Read-only API keys from your exchanges
 
 ### Backend Setup
 
-1. Navigate to backend directory:
-```bash
-cd backend
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Configure environment variables in `backend/.env`:
-```
-PORT=5000
-MONGODB_URI=your-mongodb-uri
-JWT_SECRET=your-jwt-secret
-ENCRYPTION_KEY=your-32-character-key
-```
-
-4. Start the server:
-```bash
-npm run dev
-```
+1.  Navigate to the `backend` directory:
+    ```bash
+    cd backend
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Create a `.env` file in the `backend` directory and add the following environment variables:
+    ```
+    PORT=5000
+    MONGODB_URI=<your-mongodb-uri>
+    JWT_SECRET=<your-jwt-secret>
+    ENCRYPTION_KEY=<your-32-character-encryption-key>
+    EMAIL_USER=<your-gmail-address>
+    EMAIL_PASS=<your-gmail-app-password>
+    ETHERSCAN_API_KEY=<your-etherscan-api-key>
+    SOLANA_RPC_URL=<your-solana-rpc-url>
+    COINGECKO_API_KEY=<your-coingecko-api-key>
+    ```
+4.  Start the server:
+    ```bash
+    npm run dev
+    ```
 
 ### Frontend Setup
 
-1. In the root directory, install dependencies:
-```bash
-npm install
-```
-
-2. Configure environment variables in `.env`:
-```
-VITE_API_URL=http://localhost:5000/api
-```
-
-3. Start the development server:
-```bash
-npm run dev
-```
+1.  In the root directory, install dependencies:
+    ```bash
+    npm install
+    ```
+2.  Create a `.env` file in the root directory and add the following environment variable:
+    ```
+    VITE_API_URL=http://localhost:5000/api
+    VITE_GOOGLE_CLIENT_ID=<your-google-client-id>
+    ```
+3.  Start the development server:
+    ```bash
+    npm run dev
+    ```
 
 ## Project Structure
 
@@ -84,73 +85,62 @@ npm run dev
 crypto-portfolio-tracker/
 ├── src/                    # Frontend source
 │   ├── components/         # React components
-│   ├── pages/             # Page components
-│   ├── services/          # API services
-│   └── App.jsx            # Main app component
-├── backend/               # Backend source
+│   ├── pages/              # Page components
+│   ├── services/           # API services
+│   └── App.jsx             # Main app component
+├── backend/                # Backend source
 │   └── src/
-│       ├── models/        # MongoDB models
-│       ├── routes/        # API routes
-│       ├── services/      # Business logic
-│       ├── middleware/    # Express middleware
-│       └── server.js      # Server entry point
+│       ├── models/         # MongoDB models
+│       ├── routes/         # API routes
+│       ├── services/       # Business logic
+│       ├── middleware/     # Express middleware
+│       └── server.js       # Server entry point
 └── README.md
 ```
 
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
+
+  - `POST /api/auth/register`: User registration
+  - `POST /api/auth/login`: User login
+  - `POST /api/auth/login/2fa`: 2FA login verification
+  - `POST /api/auth/google`: Google OAuth
+  - `POST /api/auth/forgot-password`: Request password reset OTP
+  - `POST /api/auth/verify-otp`: Verify password reset OTP
+  - `POST /api/auth/reset-password`: Reset password
+
+### User
+
+  - `GET /api/user/profile`: Get user profile
+  - `PATCH /api/user/profile`: Update username
+  - `POST /api/user/profile-picture`: Upload profile picture
+  - `POST /api/user/change-password`: Change password
+  - `POST /api/user/2fa/generate`: Generate 2FA secret
+  - `POST /api/user/2fa/verify`: Verify and enable 2FA
+  - `POST /api/user/2fa/disable`: Disable 2FA
+  - `DELETE /api/user/profile`: Delete account
 
 ### Portfolio
-- `GET /api/portfolio/summary` - Get portfolio summary
-- `GET /api/portfolio/performance/:timeframe` - Get performance data
-- `POST /api/portfolio/sync` - Sync portfolio
+
+  - `GET /api/portfolio/summary`: Get portfolio summary
+  - `GET /api/portfolio/performance/:timeframe`: Get performance data
+  - `GET /api/portfolio/assets`: Get all assets
+  - `POST /api/portfolio/sync`: Sync portfolio
 
 ### Integrations
-- `GET /api/integration` - Get all integrations
-- `POST /api/integration/exchange` - Add exchange
-- `POST /api/integration/wallet` - Add wallet
-- `DELETE /api/integration/:id` - Remove integration
+
+  - `GET /api/integration`: Get all integrations
+  - `POST /api/integration/exchange`: Add an exchange
+  - `POST /api/integration/wallet`: Add a wallet
+  - `DELETE /api/integration/:id`: Remove an integration
+  - `PATCH /api/integration/:id`: Update integration display name
 
 ### Transactions
-- `GET /api/transactions/recent` - Get recent transactions
-- `GET /api/transactions/asset/:symbol` - Get asset transactions
 
-## Security
-
-- API keys are encrypted using AES-256
-- JWT authentication for all protected routes
-- Read-only exchange API keys recommended
-- HTTPS required in production
-
-## Deployment
-
-### Firebase Hosting
-
-1. Install Firebase CLI:
-```bash
-npm install -g firebase-tools
-```
-
-2. Initialize Firebase:
-```bash
-firebase init
-```
-
-3. Build and deploy:
-```bash
-npm run build
-firebase deploy
-```
-
-## Important Notes
-
-- This is a desktop-focused application
-- Exchange API keys should be read-only
-- Regular syncing is automated every 15 minutes
-- Performance history is retained for 1 year
+  - `GET /api/transactions/recent`: Get recent transactions
+  - `GET /api/transactions/recent/:integrationId`: Get recent transactions for a specific wallet
+  - `GET /api/transactions/asset/:symbol`: Get transactions by asset
 
 ## License
 
